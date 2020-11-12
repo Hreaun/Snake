@@ -1,6 +1,7 @@
 package view;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableColumn;
 import java.awt.*;
@@ -15,6 +16,7 @@ public class MainForm extends JFrame {
     private JButton newGameButton;
     private JList<String> playersList;
     private JList<String> settingsList;
+    private JScrollPane gamesTablePane;
 
     public MainForm() {
         $$$setupUI$$$();
@@ -22,10 +24,16 @@ public class MainForm extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.pack();
         this.setVisible(true);
+        gamePanel.setBackground(new Color(255, 255, 255));
+        gamePanel.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
 
         exitButton.addActionListener(actionEvent -> System.out.println("exit"));
         playersList.setListData(new String[]{"Jane Doe", "John Smith", "Kathy Green"});
         playersList.setVisibleRowCount(-1);
+    }
+
+    public GamePanel getGamePanel() {
+        return (GamePanel) gamePanel;
     }
 
     /**
@@ -39,26 +47,28 @@ public class MainForm extends JFrame {
         createUIComponents();
         mainPanel = new JPanel();
         mainPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 4, new Insets(0, 0, 0, 0), -1, -1));
-        gamePanel = new JPanel();
-        gamePanel.setLayout(new BorderLayout(0, 0));
-        mainPanel.add(gamePanel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 3, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 200), null, 0, false));
-        mainPanel.add(gamesTable, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
-        newGameButton = new JButton();
-        newGameButton.setText("Button");
-        mainPanel.add(newGameButton, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_SOUTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(78, 63), null, 0, false));
+        gamePanel.setEnabled(true);
+        gamePanel.setVisible(true);
+        mainPanel.add(gamePanel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 3, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(400, 400), new Dimension(400, 400), null, 1, false));
         playersList = new JList();
-        mainPanel.add(playersList, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 258), null, 0, false));
+        mainPanel.add(playersList, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_VERTICAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(200, 200), null, 0, false));
         settingsList = new JList();
         final DefaultListModel defaultListModel1 = new DefaultListModel();
         settingsList.setModel(defaultListModel1);
-        mainPanel.add(settingsList, new com.intellij.uiDesigner.core.GridConstraints(0, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, 100), null, 0, false));
+        mainPanel.add(settingsList, new com.intellij.uiDesigner.core.GridConstraints(0, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_VERTICAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(200, 100), null, 0, false));
+        gamesTablePane = new JScrollPane();
+        mainPanel.add(gamesTablePane, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(-1, 100), null, 0, false));
+        gamesTablePane.setViewportView(gamesTable);
+        newGameButton = new JButton();
+        newGameButton.setText("Button");
+        mainPanel.add(newGameButton, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHEAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(80, 40), null, 0, false));
         exitButton = new JButton();
         exitButton.setHorizontalAlignment(0);
         exitButton.setHorizontalTextPosition(0);
         exitButton.setText("Exit");
         exitButton.setVerticalAlignment(0);
         exitButton.setVerticalTextPosition(0);
-        mainPanel.add(exitButton, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_SOUTHEAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(78, 63), null, 0, false));
+        mainPanel.add(exitButton, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(80, 40), null, 0, false));
     }
 
     /**
@@ -70,15 +80,17 @@ public class MainForm extends JFrame {
 
     private void createUIComponents() {
         // TODO: place custom component creation code here
-        JButton enterButton = new JButton("enter");
+        gamePanel = new GamePanel();
 
-        final String[] columns = {"Host", "#", "Size", "Food", "Enter"};
+        JButton enterButton = new JButton("->");
+        String[] columns = {"Host", "#", "Size", "Food", "Enter"};
         Object[][] data = {{"Kathy", "2", "30*45", "2+1x", enterButton},
                 {"John", "3", "30*45", "4+2x", enterButton}};
-
         gamesTable = new JTable(data, columns);
         TableColumn enterColumn = gamesTable.getColumnModel().getColumn(4);
         enterColumn.setCellEditor(new ButtonCellEditor(enterButton));
+
+        // рендер кнопки в таблице
         gamesTable.getColumn("Enter")
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> (JButton) value);
         gamesTable.addMouseListener(new MouseListener() {
@@ -106,7 +118,6 @@ public class MainForm extends JFrame {
 
             }
         });
-
     }
 }
 
