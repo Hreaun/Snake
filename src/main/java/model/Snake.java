@@ -10,8 +10,8 @@ public class Snake {
 
     public Snake() {
         ArrayList<SnakeProto.GameState.Coord> initialCoords = new ArrayList<>();
-        initialCoords.add(SnakeProto.GameState.Coord.newBuilder().setX(200).setY(200).build());
-        initialCoords.add(SnakeProto.GameState.Coord.newBuilder().setX(190).setY(200).build());
+        initialCoords.add(SnakeProto.GameState.Coord.newBuilder().setX(50).setY(50).build());
+        initialCoords.add(SnakeProto.GameState.Coord.newBuilder().setX(49).setY(50).build());
         snake = SnakeProto.GameState.Snake.newBuilder().addAllPoints(initialCoords);
     }
 
