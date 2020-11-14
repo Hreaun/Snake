@@ -5,18 +5,17 @@ import java.util.Observer;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Model extends Observable {
+public class Game extends Observable {
     Snake snake;
 
-    public Model(Snake snake, Observer o) {
+    public Game(Snake snake, Observer o) {
         this.snake = snake;
         addObserver(o);
     }
 
     private void snakesUpdate() {
-
+        snake.moveForward();
     }
-
 
     public void start(int stateDelayMs) {
         Timer timer = new Timer();

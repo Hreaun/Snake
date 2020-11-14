@@ -1,10 +1,9 @@
 package main;
 
-import game.Game;
-import view.MainForm;
+import model.App;
 
 public class Main {
     public static void main(String[] args) {
-        new Game();
+        new App();
     }
 }
