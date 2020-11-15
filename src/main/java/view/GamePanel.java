@@ -37,7 +37,7 @@ public class GamePanel extends JPanel implements Observer {
             getActionMap().put(k, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
-                    snake.setDirection(v);
+                    snake.setNextDirection(v);
                 }
             });
         });

@@ -7,6 +7,7 @@ import java.util.List;
 
 public class Snake {
     private final SnakeProto.GameState.Snake.Builder snake;
+    private SnakeProto.Direction nextDirection;
     private int gameWidth = 100;
     private int gameHeight = 100;
 
@@ -26,7 +27,11 @@ public class Snake {
         snake = SnakeProto.GameState.Snake.newBuilder().addAllPoints(initialCoords);
     }
 
-    public void setDirection(SnakeProto.Direction direction) {
+    public void setNextDirection(SnakeProto.Direction nextDirection) {
+        this.nextDirection = nextDirection;
+    }
+
+    private void setDirection(SnakeProto.Direction direction) {
         switch (snake.getHeadDirection()) {
             case DOWN:
             case UP: {
@@ -58,6 +63,7 @@ public class Snake {
         List<SnakeProto.GameState.Coord> oldCoords = getCoords();
         List<SnakeProto.GameState.Coord> newCoords = new ArrayList<>();
         SnakeProto.GameState.Coord headCoord = oldCoords.get(0);
+        setDirection(nextDirection);
         switch (snake.getHeadDirection()) {
             case UP: {
                 newCoords.add(SnakeProto.GameState.Coord.newBuilder()
