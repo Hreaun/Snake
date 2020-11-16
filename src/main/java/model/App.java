@@ -1,5 +1,6 @@
 package model;
 
+import proto.SnakeProto;
 import view.MainForm;
 
 import java.net.DatagramPacket;
@@ -13,6 +14,8 @@ public class App {
     private final Map<Integer, InetSocketAddress> gamesMap = new HashMap<>();
     private final MainForm mainForm;
     private final MessageParser messageParser = new MessageParser();
+    private final SnakeProto.GameConfig.Builder gameConfig = SnakeProto.GameConfig.newBuilder();
+    private final SnakeProto.GameMessage.JoinMsg.Builder playerName = SnakeProto.GameMessage.JoinMsg.newBuilder();
 
     public void addGame(DatagramPacket packet) {
         gamesCounter++;
@@ -25,6 +28,8 @@ public class App {
     public App() {
         Snake snake = new Snake();
         mainForm = new MainForm();
+        mainForm.setGameConfig(gameConfig);
+        mainForm.setPlayerName(playerName);
         mainForm.getGamePanel().setSnake(snake);
         mainForm.getGamePanel().setKeyBindings();
         Game game = new Game(snake, (Observer) mainForm.getGamePanel());

@@ -1,7 +1,10 @@
 package view;
 
+import proto.SnakeProto;
+
 import javax.swing.*;
 import java.awt.*;
+import java.text.ParseException;
 
 public class SettingsForm extends JFrame {
     private JPanel mainPanel;
@@ -24,16 +27,20 @@ public class SettingsForm extends JFrame {
     private JSpinner deadFoodProb;
     private JSpinner pingDelay;
     private JSpinner nodeTimeout;
+    private SnakeProto.GameConfig.Builder gameConfig;
+    private SnakeProto.GameMessage.JoinMsg.Builder playerName;
 
     public SettingsForm(int x, int y) {
         $$$setupUI$$$();
         this.setContentPane(mainPanel);
         this.pack();
         this.setLocation(x, y);
-        this.setVisible(true);
+        this.setVisible(false);
+        this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         saveSettingsButton.addActionListener(actionEvent -> {
             try {
-                setName();
+                checkName();
+                setSettings();
             } catch (InvalidSettingsException e) {
                 JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Settings error",
                         JOptionPane.ERROR_MESSAGE);
@@ -41,10 +48,42 @@ public class SettingsForm extends JFrame {
         });
     }
 
-    private void setName() throws InvalidSettingsException {
+    public void setGameConfig(SnakeProto.GameConfig.Builder gameConfig) {
+        this.gameConfig = gameConfig;
+    }
+
+    public void setPlayerName(SnakeProto.GameMessage.JoinMsg.Builder playerName) {
+        this.playerName = playerName;
+    }
+
+    private void checkName() throws InvalidSettingsException {
         if (nameField.getText().length() > 40) {
             throw new InvalidSettingsException("Name must be less than 40 characters.");
         }
+    }
+
+    private void setSettings() {
+        try {
+            width.commitEdit();
+            height.commitEdit();
+            foodStatic.commitEdit();
+            foodPerPlayer.commitEdit();
+            stateDelay.commitEdit();
+            deadFoodProb.commitEdit();
+            pingDelay.commitEdit();
+            nodeTimeout.commitEdit();
+        } catch (ParseException ignored) {
+        }
+        playerName.setName(nameField.getText());
+        gameConfig
+                .setWidth((Integer) width.getValue())
+                .setHeight((Integer) height.getValue())
+                .setFoodStatic((Integer) foodStatic.getValue())
+                .setFoodPerPlayer(((Double) foodPerPlayer.getValue()).floatValue())
+                .setStateDelayMs((Integer) stateDelay.getValue())
+                .setDeadFoodProb(((Double) deadFoodProb.getValue()).floatValue())
+                .setPingDelayMs((Integer) pingDelay.getValue())
+                .setNodeTimeoutMs((Integer) nodeTimeout.getValue());
     }
 
 
@@ -124,7 +163,7 @@ public class SettingsForm extends JFrame {
         width = new JSpinner(new SpinnerNumberModel(40, 10, 100, 1));
         height = new JSpinner(new SpinnerNumberModel(30, 10, 100, 1));
         foodStatic = new JSpinner(new SpinnerNumberModel(1, 0, 100, 1));
-        foodPerPlayer = new JSpinner(new SpinnerNumberModel(1, 0, 100, 1));
+        foodPerPlayer = new JSpinner(new SpinnerNumberModel(1.0, 0, 100, 1));
         stateDelay = new JSpinner(new SpinnerNumberModel(1000, 1, 10_000, 50));
         deadFoodProb = new JSpinner(new SpinnerNumberModel(0.1, 0, 1, 0.05));
         pingDelay = new JSpinner(new SpinnerNumberModel(100, 1, 10_000, 50));
