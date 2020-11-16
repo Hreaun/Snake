@@ -1,9 +1,7 @@
 package view;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
-import javax.swing.table.TableCellEditor;
-import javax.swing.table.TableColumn;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -13,6 +11,7 @@ public class MainForm extends JFrame {
     private JButton exitButton;
     private JPanel gamePanel;
     private JTable gamesTable;
+    private DefaultTableModel gamesTableModel;
     private JButton newGameButton;
     private JList<String> playersList;
     private JList<String> settingsList;
@@ -32,6 +31,11 @@ public class MainForm extends JFrame {
                 -> settingsForm = new SettingsForm(settingsButton.getX(), settingsButton.getY()));
         this.pack();
         this.setVisible(true);
+    }
+
+    public void setNewGame(String name, int number, String size, String food) {
+        JButton enterButton = new JButton("->");
+        gamesTableModel.insertRow(0, new Object[]{name, number, size, food, enterButton});
     }
 
     public GamePanel getGamePanel() {
@@ -86,13 +90,9 @@ public class MainForm extends JFrame {
         // TODO: place custom component creation code here
         gamePanel = new GamePanel();
 
-        JButton enterButton = new JButton("->");
-        String[] columns = {"Host", "#", "Size", "Food", "Enter"};
-        Object[][] data = {{"Kathy", "2", "30*45", "2+1x", enterButton},
-                {"John", "3", "30*45", "4+2x", enterButton}};
-        gamesTable = new JTable(data, columns);
-        TableColumn enterColumn = gamesTable.getColumnModel().getColumn(4);
-        enterColumn.setCellEditor(new ButtonCellEditor(enterButton));
+        gamesTableModel =
+                new DefaultTableModel(new String[]{"Host", "#", "Size", "Food", "Enter"}, 0);
+        gamesTable = new JTable(gamesTableModel);
 
         // рендер кнопки в таблице
         gamesTable.getColumn("Enter")
@@ -122,23 +122,5 @@ public class MainForm extends JFrame {
 
             }
         });
-    }
-}
-
-class ButtonCellEditor extends AbstractCellEditor implements TableCellEditor {
-    JButton button;
-
-    public ButtonCellEditor(JButton button) {
-        this.button = button;
-    }
-
-    @Override
-    public Object getCellEditorValue() {
-        return button;
-    }
-
-    @Override
-    public Component getTableCellEditorComponent(JTable jTable, Object o, boolean b, int i, int i1) {
-        return null;
     }
 }
