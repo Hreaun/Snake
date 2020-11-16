@@ -19,36 +19,15 @@
           <text value="Width"/>
         </properties>
       </component>
-      <component id="3f189" class="javax.swing.JTextField" binding="widthField">
-        <constraints>
-          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="40"/>
-          <toolTipText value=""/>
-        </properties>
-      </component>
       <component id="2fbf4" class="javax.swing.JLabel" binding="heightLabel">
         <constraints>
           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="129" height="16"/>
+            <preferred-size width="129" height="34"/>
           </grid>
         </constraints>
         <properties>
           <horizontalAlignment value="4"/>
           <text value="Height"/>
-        </properties>
-      </component>
-      <component id="e15de" class="javax.swing.JTextField" binding="heightField">
-        <constraints>
-          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="30"/>
         </properties>
       </component>
       <component id="53535" class="javax.swing.JLabel" binding="foodStaticLabel">
@@ -117,66 +96,6 @@
           <text value="Node Timeout Ms"/>
         </properties>
       </component>
-      <component id="2eb06" class="javax.swing.JTextField" binding="foodStaticField">
-        <constraints>
-          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="1"/>
-        </properties>
-      </component>
-      <component id="5d468" class="javax.swing.JTextField" binding="foodPerPlayerField">
-        <constraints>
-          <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="1"/>
-        </properties>
-      </component>
-      <component id="19b42" class="javax.swing.JTextField" binding="stateDelayField">
-        <constraints>
-          <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="1000"/>
-        </properties>
-      </component>
-      <component id="21a6c" class="javax.swing.JTextField" binding="deadFoodProbField">
-        <constraints>
-          <grid row="6" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="0.1"/>
-        </properties>
-      </component>
-      <component id="5ad4f" class="javax.swing.JTextField" binding="pingDelayField">
-        <constraints>
-          <grid row="7" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="100"/>
-        </properties>
-      </component>
-      <component id="f7bb7" class="javax.swing.JTextField" binding="nodeTimeoutField">
-        <constraints>
-          <grid row="8" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="50" height="-1"/>
-          </grid>
-        </constraints>
-        <properties>
-          <text value="800"/>
-        </properties>
-      </component>
       <component id="2012f" class="javax.swing.JButton" binding="saveSettingsButton" default-binding="true">
         <constraints>
           <grid row="9" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
@@ -206,6 +125,56 @@
           <horizontalTextPosition value="11"/>
           <text value="Name"/>
         </properties>
+      </component>
+      <component id="80ad6" class="javax.swing.JSpinner" binding="height" custom-create="true">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="88" height="34"/>
+          </grid>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="fdab6" class="javax.swing.JSpinner" binding="foodStatic" custom-create="true">
+        <constraints>
+          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="d209f" class="javax.swing.JSpinner" binding="foodPerPlayer" custom-create="true">
+        <constraints>
+          <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="60e0d" class="javax.swing.JSpinner" binding="stateDelay" custom-create="true">
+        <constraints>
+          <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="f9572" class="javax.swing.JSpinner" binding="deadFoodProb" custom-create="true">
+        <constraints>
+          <grid row="6" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="662b8" class="javax.swing.JSpinner" binding="pingDelay" custom-create="true">
+        <constraints>
+          <grid row="7" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="540dc" class="javax.swing.JSpinner" binding="nodeTimeout" custom-create="true">
+        <constraints>
+          <grid row="8" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="bc6fd" class="javax.swing.JSpinner" binding="width" custom-create="true">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
       </component>
     </children>
   </grid>

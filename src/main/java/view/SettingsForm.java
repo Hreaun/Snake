@@ -2,19 +2,9 @@ package view;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class SettingsForm extends JFrame {
     private JPanel mainPanel;
-    private JTextField widthField;
-    private JTextField heightField;
-    private JTextField foodStaticField;
-    private JTextField foodPerPlayerField;
-    private JTextField stateDelayField;
-    private JTextField deadFoodProbField;
-    private JTextField pingDelayField;
-    private JTextField nodeTimeoutField;
     private JLabel widthLabel;
     private JLabel heightLabel;
     private JLabel foodStaticLabel;
@@ -26,30 +16,27 @@ public class SettingsForm extends JFrame {
     private JButton saveSettingsButton;
     private JTextField nameField;
     private JLabel nameLabel;
+    private JSpinner width;
+    private JSpinner height;
+    private JSpinner foodStatic;
+    private JSpinner foodPerPlayer;
+    private JSpinner stateDelay;
+    private JSpinner deadFoodProb;
+    private JSpinner pingDelay;
+    private JSpinner nodeTimeout;
 
     public SettingsForm(int x, int y) {
+        $$$setupUI$$$();
         this.setContentPane(mainPanel);
         this.pack();
         this.setLocation(x, y);
         this.setVisible(true);
-        saveSettingsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    setName();
-                    setWidth();
-                    setHeight();
-                    setFoodStatic();
-                    setFoodPerPlayer();
-                    setStateDelay();
-                    setDeadFoodProb();
-                    setPingDelay();
-                    setNodeTimeout();
-                } catch (InvalidSettingsException | NumberFormatException e) {
-                    JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
-                            "Settings error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
+        saveSettingsButton.addActionListener(actionEvent -> {
+            try {
+                setName();
+            } catch (InvalidSettingsException e) {
+                JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Settings error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
     }
@@ -60,70 +47,6 @@ public class SettingsForm extends JFrame {
         }
     }
 
-    private void setWidth() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(widthField.getText()) < 10
-                || Integer.parseInt(widthField.getText()) > 100) {
-            throw new InvalidSettingsException("Width must be between 10 and 100.");
-        }
-    }
-
-    private void setHeight() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(heightField.getText()) < 10
-                || Integer.parseInt(heightField.getText()) > 100) {
-            throw new InvalidSettingsException("Height must be between 10 and 100.");
-        }
-    }
-
-    private void setFoodStatic() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(foodStaticField.getText()) < 0
-                || Integer.parseInt(foodStaticField.getText()) > 100) {
-            throw new InvalidSettingsException("Food static must be between 0 and 100.");
-        }
-    }
-
-    private void setFoodPerPlayer() throws InvalidSettingsException, NumberFormatException {
-        if (Double.parseDouble(foodPerPlayerField.getText()) < 0
-                || Double.parseDouble(foodPerPlayerField.getText()) > 100) {
-            throw new InvalidSettingsException("Food per player must be between 0 and 100.");
-        }
-    }
-
-    private void setStateDelay() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(stateDelayField.getText()) < 1
-                || Integer.parseInt(stateDelayField.getText()) > 10_000) {
-            throw new InvalidSettingsException("State delay must be between 1 and 10000.");
-        }
-    }
-
-    private void setDeadFoodProb() throws InvalidSettingsException, NumberFormatException {
-        if (Double.parseDouble(deadFoodProbField.getText()) < 0
-                || Double.parseDouble(deadFoodProbField.getText()) > 1) {
-            throw new InvalidSettingsException("Dead food probability must be between 0 and 1.");
-        }
-    }
-
-    private void setPingDelay() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(pingDelayField.getText()) < 1
-                || Integer.parseInt(pingDelayField.getText()) > 10_000) {
-            throw new InvalidSettingsException("Ping delay must be between 1 and 10000.");
-        }
-    }
-
-    private void setNodeTimeout() throws InvalidSettingsException, NumberFormatException {
-        if (Integer.parseInt(nodeTimeoutField.getText()) < 1
-                || Integer.parseInt(nodeTimeoutField.getText()) > 10_000) {
-            throw new InvalidSettingsException("Node timeout must be between 1 and 10000.");
-        }
-    }
-
-
-
-    {
-// GUI initializer generated by IntelliJ IDEA GUI Designer
-// >>> IMPORTANT!! <<<
-// DO NOT EDIT OR ADD ANY CODE HERE!
-        $$$setupUI$$$();
-    }
 
     /**
      * Method generated by IntelliJ IDEA GUI Designer
@@ -133,23 +56,17 @@ public class SettingsForm extends JFrame {
      * @noinspection ALL
      */
     private void $$$setupUI$$$() {
+        createUIComponents();
         mainPanel = new JPanel();
         mainPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(10, 2, new Insets(0, 0, 0, 0), -1, -1));
         widthLabel = new JLabel();
         widthLabel.setHorizontalAlignment(4);
         widthLabel.setText("Width");
         mainPanel.add(widthLabel, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(129, 16), null, 0, false));
-        widthField = new JTextField();
-        widthField.setText("40");
-        widthField.setToolTipText("");
-        mainPanel.add(widthField, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
         heightLabel = new JLabel();
         heightLabel.setHorizontalAlignment(4);
         heightLabel.setText("Height");
-        mainPanel.add(heightLabel, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(129, 16), null, 0, false));
-        heightField = new JTextField();
-        heightField.setText("30");
-        mainPanel.add(heightField, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
+        mainPanel.add(heightLabel, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(129, 34), null, 0, false));
         foodStaticLabel = new JLabel();
         foodStaticLabel.setHorizontalAlignment(4);
         foodStaticLabel.setText("Food Static");
@@ -174,24 +91,6 @@ public class SettingsForm extends JFrame {
         nodeTimeoutMsLabel.setHorizontalAlignment(4);
         nodeTimeoutMsLabel.setText("Node Timeout Ms");
         mainPanel.add(nodeTimeoutMsLabel, new com.intellij.uiDesigner.core.GridConstraints(8, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(129, 16), null, 0, false));
-        foodStaticField = new JTextField();
-        foodStaticField.setText("1");
-        mainPanel.add(foodStaticField, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
-        foodPerPlayerField = new JTextField();
-        foodPerPlayerField.setText("1");
-        mainPanel.add(foodPerPlayerField, new com.intellij.uiDesigner.core.GridConstraints(4, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
-        stateDelayField = new JTextField();
-        stateDelayField.setText("1000");
-        mainPanel.add(stateDelayField, new com.intellij.uiDesigner.core.GridConstraints(5, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
-        deadFoodProbField = new JTextField();
-        deadFoodProbField.setText("0.1");
-        mainPanel.add(deadFoodProbField, new com.intellij.uiDesigner.core.GridConstraints(6, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
-        pingDelayField = new JTextField();
-        pingDelayField.setText("100");
-        mainPanel.add(pingDelayField, new com.intellij.uiDesigner.core.GridConstraints(7, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
-        nodeTimeoutField = new JTextField();
-        nodeTimeoutField.setText("800");
-        mainPanel.add(nodeTimeoutField, new com.intellij.uiDesigner.core.GridConstraints(8, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
         saveSettingsButton = new JButton();
         saveSettingsButton.setText("Save Settings");
         mainPanel.add(saveSettingsButton, new com.intellij.uiDesigner.core.GridConstraints(9, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -203,6 +102,14 @@ public class SettingsForm extends JFrame {
         nameLabel.setHorizontalTextPosition(11);
         nameLabel.setText("Name");
         mainPanel.add(nameLabel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(129, 16), null, 0, false));
+        mainPanel.add(height, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(88, 34), null, 0, false));
+        mainPanel.add(foodStatic, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(foodPerPlayer, new com.intellij.uiDesigner.core.GridConstraints(4, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(stateDelay, new com.intellij.uiDesigner.core.GridConstraints(5, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(deadFoodProb, new com.intellij.uiDesigner.core.GridConstraints(6, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(pingDelay, new com.intellij.uiDesigner.core.GridConstraints(7, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(nodeTimeout, new com.intellij.uiDesigner.core.GridConstraints(8, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        mainPanel.add(width, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**
@@ -212,4 +119,15 @@ public class SettingsForm extends JFrame {
         return mainPanel;
     }
 
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
+        width = new JSpinner(new SpinnerNumberModel(40, 10, 100, 1));
+        height = new JSpinner(new SpinnerNumberModel(30, 10, 100, 1));
+        foodStatic = new JSpinner(new SpinnerNumberModel(1, 0, 100, 1));
+        foodPerPlayer = new JSpinner(new SpinnerNumberModel(1, 0, 100, 1));
+        stateDelay = new JSpinner(new SpinnerNumberModel(1000, 1, 10_000, 50));
+        deadFoodProb = new JSpinner(new SpinnerNumberModel(0.1, 0, 1, 0.05));
+        pingDelay = new JSpinner(new SpinnerNumberModel(100, 1, 10_000, 50));
+        nodeTimeout = new JSpinner(new SpinnerNumberModel(800, 1, 10_000, 50));
+    }
 }
