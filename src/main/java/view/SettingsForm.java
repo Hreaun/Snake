@@ -30,11 +30,10 @@ public class SettingsForm extends JFrame {
     private SnakeProto.GameConfig.Builder gameConfig;
     private SnakeProto.GameMessage.JoinMsg.Builder playerName;
 
-    public SettingsForm(int x, int y) {
+    public SettingsForm() {
         $$$setupUI$$$();
         this.setContentPane(mainPanel);
         this.pack();
-        this.setLocation(x, y);
         this.setVisible(false);
         this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         saveSettingsButton.addActionListener(actionEvent -> {

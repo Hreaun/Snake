@@ -1,15 +1,13 @@
 package connection;
 
 import model.App;
-import proto.SnakeProto;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.util.Arrays;
 
-public class MulticastListener extends Thread{
+public class MulticastListener extends Thread {
     private MulticastSocket multicastSocket = null;
     private App app;
     private final int PORT = 9192;

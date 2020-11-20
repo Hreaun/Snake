@@ -1,7 +1,5 @@
 package view;
 
-import proto.SnakeProto;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -21,7 +19,7 @@ public class MainForm extends JFrame {
     private JButton settingsButton;
     private final SettingsForm settingsForm; // скрывать при подключении / запуске новой игры, показывать при выходе
 
-    public MainForm() {
+    public MainForm(SettingsForm settingsForm) {
         $$$setupUI$$$();
         this.setContentPane(mainPanel);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -30,7 +28,8 @@ public class MainForm extends JFrame {
         playersList.setListData(new String[]{"Jane Doe", "John Smith", "Kathy Green"});
         playersList.setVisibleRowCount(-1);
         this.pack();
-        settingsForm = new SettingsForm(settingsButton.getX(), settingsButton.getY());
+        this.settingsForm = settingsForm;
+        settingsForm.setLocation(settingsButton.getX(), settingsButton.getY());
         settingsButton.addActionListener(actionEvent
                 -> settingsForm.setVisible(true));
         this.setVisible(true);
@@ -43,14 +42,6 @@ public class MainForm extends JFrame {
 
     public GamePanel getGamePanel() {
         return (GamePanel) gamePanel;
-    }
-
-    public void setGameConfig(SnakeProto.GameConfig.Builder gameConfig) {
-        settingsForm.setGameConfig(gameConfig);
-    }
-
-    public void setPlayerName(SnakeProto.GameMessage.JoinMsg.Builder playerName) {
-        settingsForm.setPlayerName(playerName);
     }
 
     /**

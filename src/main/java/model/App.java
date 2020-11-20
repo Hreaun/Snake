@@ -2,6 +2,7 @@ package model;
 
 import proto.SnakeProto;
 import view.MainForm;
+import view.SettingsForm;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
@@ -27,9 +28,10 @@ public class App {
 
     public App() {
         Snake snake = new Snake();
-        mainForm = new MainForm();
-        mainForm.setGameConfig(gameConfig);
-        mainForm.setPlayerName(playerName);
+        SettingsForm settingsForm = new SettingsForm();
+        mainForm = new MainForm(settingsForm);
+        settingsForm.setGameConfig(gameConfig);
+        settingsForm.setPlayerName(playerName);
         mainForm.getGamePanel().setSnake(snake);
         mainForm.getGamePanel().setKeyBindings();
         Game game = new Game(snake, (Observer) mainForm.getGamePanel());
