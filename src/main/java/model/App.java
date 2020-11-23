@@ -33,13 +33,15 @@ public class App {
         try {
             this.socket = new DatagramSocket();
             Snake snake = new Snake();
+            Food food = new Food();
             SettingsForm settingsForm = new SettingsForm();
             mainForm = new MainForm(settingsForm);
             settingsForm.setGameConfig(gameConfig);
             settingsForm.setPlayerName(playerName);
             mainForm.getGamePanel().setSnake(snake);
+            mainForm.getGamePanel().setFood(food);
             mainForm.getGamePanel().setKeyBindings();
-            Game game = new Game(snake, (Observer) mainForm.getGamePanel());
+            Game game = new Game(snake, food, (Observer) mainForm.getGamePanel());
             game.start(100);
         } catch (SocketException e) {
             e.printStackTrace();

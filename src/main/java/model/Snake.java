@@ -10,6 +10,7 @@ public class Snake {
     private List<SnakeProto.GameState.Coord> unpackedCoords;
     private List<SnakeProto.GameState.Coord> packedCoords;
     private SnakeProto.Direction nextDirection;
+    private boolean ateFood = false;
     private int gameWidth = 100;
     private int gameHeight = 100;
 
@@ -17,6 +18,10 @@ public class Snake {
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
     }*/
+
+    public SnakeProto.GameState.Snake.Builder getSnake() {
+        return snake;
+    }
 
     public Snake() {
         packedCoords = new ArrayList<>();
@@ -29,6 +34,17 @@ public class Snake {
                 .addAllPoints(unpackedCoords)
                 .setHeadDirection(SnakeProto.Direction.UP);
         packCoords();
+    }
+
+    public void checkFoodCollision(Food food, SnakeProto.GameState.Coord head) {
+        food.getFoods().forEach(f -> {
+            if ((head.getX() == f.getX()) && head.getY() == f.getY()) {
+                ateFood = true;
+            }
+        });
+        if (ateFood) {
+            food.getFoods().remove(head);
+        }
     }
 
     public void setNextDirection(SnakeProto.Direction nextDirection) {
@@ -159,41 +175,52 @@ public class Snake {
         }
     }
 
-    public void moveForward() {
+    public void moveForward(Food food) {
         unpackCoords();
+        ateFood = false;
         List<SnakeProto.GameState.Coord> oldCoords = unpackedCoords;
         List<SnakeProto.GameState.Coord> newCoords = new ArrayList<>();
         SnakeProto.GameState.Coord oldHeadCoord = oldCoords.get(0);
         setDirection(nextDirection);
+        SnakeProto.GameState.Coord nextHeadCoord = null;
         switch (snake.getHeadDirection()) {
             case UP: {
-                newCoords.add(SnakeProto.GameState.Coord.newBuilder()
+                nextHeadCoord = SnakeProto.GameState.Coord.newBuilder()
                         .setX(oldHeadCoord.getX())
-                        .setY((gameHeight + (oldHeadCoord.getY() - 1)) % gameHeight).build());
+                        .setY((gameHeight + (oldHeadCoord.getY() - 1)) % gameHeight).build();
                 break;
             }
             case DOWN: {
-                newCoords.add(SnakeProto.GameState.Coord.newBuilder()
+                nextHeadCoord = SnakeProto.GameState.Coord.newBuilder()
                         .setX(oldHeadCoord.getX())
-                        .setY((oldHeadCoord.getY() + 1) % gameHeight).build());
+                        .setY((oldHeadCoord.getY() + 1) % gameHeight).build();
                 break;
             }
             case RIGHT: {
-                newCoords.add(SnakeProto.GameState.Coord.newBuilder()
+
+                nextHeadCoord = SnakeProto.GameState.Coord.newBuilder()
                         .setX((oldHeadCoord.getX() + 1) % gameWidth)
-                        .setY(oldHeadCoord.getY()).build());
+                        .setY(oldHeadCoord.getY()).build();
                 break;
             }
             case LEFT: {
-                newCoords.add(SnakeProto.GameState.Coord.newBuilder()
+                nextHeadCoord = SnakeProto.GameState.Coord.newBuilder()
                         .setX((gameWidth + (oldHeadCoord.getX() - 1)) % gameWidth)
-                        .setY(oldHeadCoord.getY()).build());
+                        .setY(oldHeadCoord.getY()).build();
                 break;
             }
         }
-
-        for (int i = 1; i < oldCoords.size(); i++) {
-            newCoords.add(oldCoords.get(i - 1));
+        checkFoodCollision(food, nextHeadCoord);
+        newCoords.add(nextHeadCoord);
+        if (ateFood) {
+            newCoords.add(oldHeadCoord);
+            for (int i = 1; i < oldCoords.size(); i++) {
+                newCoords.add(oldCoords.get(i));
+            }
+        } else {
+            for (int i = 1; i < oldCoords.size(); i++) {
+                newCoords.add(oldCoords.get(i - 1));
+            }
         }
 
         snake.clearPoints();

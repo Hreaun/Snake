@@ -1,5 +1,6 @@
 package view;
 
+import model.Food;
 import model.Snake;
 import proto.SnakeProto;
 
@@ -18,6 +19,7 @@ public class GamePanel extends JPanel implements Observer {
     private final int gameWidth = 100;
     private final int gameHeight = 100;
     Snake snake;
+    Food food;
 
     /*public GamePanel(int gameWidth, int gameHeight) {
         this.gameWidth = gameWidth;
@@ -62,10 +64,16 @@ public class GamePanel extends JPanel implements Observer {
         this.snake = snake;
     }
 
+    public void setFood(Food food) {
+        this.food = food;
+    }
+
     void render(Graphics2D g) {
         g.setColor(Color.BLACK);
         g.fillRect(0, 0, gameWidth, gameHeight);
         g.setColor(Color.WHITE);
         snake.getCoords().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
+        g.setColor(Color.YELLOW);
+        food.getFoods().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
     }
 }
