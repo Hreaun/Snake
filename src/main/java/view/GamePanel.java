@@ -16,15 +16,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GamePanel extends JPanel implements Observer {
-    private final int gameWidth = 100;
-    private final int gameHeight = 100;
+    private int gameWidth = 0;
+    private int gameHeight = 0;
     Snake snake;
     Food food;
 
-    /*public GamePanel(int gameWidth, int gameHeight) {
+    public void setGameSize(int gameWidth, int gameHeight) {
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
-    }*/
+    }
+
+
 
     public void setKeyBindings() {
         Map<String, SnakeProto.Direction> keys = Stream.of(

@@ -7,13 +7,14 @@ import java.util.*;
 public class Game extends Observable {
     Snake snake;
     Food food;
-    private int gameWidth = 100;
-    private int gameHeight = 100;
+    private int gameWidth;
+    private int gameHeight;
 
-    public Game(Snake snake, Food food, Observer o) {
+    public Game(Snake snake, Food food, Observer o, int gameWidth, int gameHeight) {
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
         this.snake = snake;
         this.food = food;
-        food.setField(gameWidth, gameHeight);
         addObserver(o);
     }
 

@@ -12,14 +12,14 @@ public class Food {
     private boolean[][] busyField;
     private int foodAmount = 3;
     private final Random random;
+    private final int gameWidth;
+    private final int gameHeight;
 
-    public Food() {
+    public Food(int gameWidth, int gameHeight) {
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
         random = new Random();
         this.foods = new ArrayList<>();
-    }
-
-    public void setField(int width, int height) {
-        busyField = new boolean[width][height];
     }
 
     public List<SnakeProto.GameState.Coord> getFoods() {
@@ -31,21 +31,21 @@ public class Food {
             return;
         }
 
-        AtomicInteger busyPointsCounter = new AtomicInteger();
-        snakes.forEach(snake -> {
-            snake.getPointsList().forEach(point -> {
-                busyField[point.getX()][point.getY()] = true;
-                busyPointsCounter.getAndIncrement();
-            });
-        });
+        busyField = new boolean[gameWidth][gameHeight];
 
-        if ((busyField.length * busyField[0].length - busyPointsCounter.intValue()) > foodAmount) {
+        AtomicInteger busyPointsCounter = new AtomicInteger();
+        snakes.forEach(snake -> snake.getPointsList().forEach(point -> {
+            busyField[point.getX()][point.getY()] = true;
+            busyPointsCounter.getAndIncrement();
+        }));
+
+        if ((gameWidth * gameHeight - busyPointsCounter.intValue()) >= foodAmount) {
             for (int i = 0; i < foodAmount; i++) {
                 int x;
                 int y;
                 do {
-                    x = random.nextInt(busyField.length);
-                    y = random.nextInt(busyField[0].length);
+                    x = random.nextInt(gameWidth);
+                    y = random.nextInt(gameHeight);
                 } while (busyField[x][y]);
                 busyField[x][y] = true;
                 foods.add(SnakeProto.GameState.Coord.newBuilder().setX(x).setY(y).build());

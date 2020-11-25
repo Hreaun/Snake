@@ -11,19 +11,18 @@ public class Snake {
     private List<SnakeProto.GameState.Coord> packedCoords;
     private SnakeProto.Direction nextDirection;
     private boolean ateFood = false;
-    private int gameWidth = 100;
-    private int gameHeight = 100;
-
-    /*public Snake(int gameWidth, int gameHeight) {
-        this.gameWidth = gameWidth;
-        this.gameHeight = gameHeight;
-    }*/
+    private final int gameWidth;
+    private final int gameHeight;
 
     public SnakeProto.GameState.Snake.Builder getSnake() {
         return snake;
     }
 
-    public Snake() {
+    public Snake(int gameWidth, int gameHeight) {
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
+
+
         packedCoords = new ArrayList<>();
         unpackedCoords = new ArrayList<>();
 
