@@ -18,15 +18,18 @@ import java.util.stream.Stream;
 public class GamePanel extends JPanel implements Observer {
     private int gameWidth = 0;
     private int gameHeight = 0;
-    Snake snake;
-    Food food;
+    private Snake snake;
+    private Food food;
+    private boolean isPlaying = false;
 
     public void setGameSize(int gameWidth, int gameHeight) {
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
     }
 
-
+    public void setPlaying(boolean playing) {
+        isPlaying = playing;
+    }
 
     public void setKeyBindings() {
         Map<String, SnakeProto.Direction> keys = Stream.of(
@@ -54,7 +57,9 @@ public class GamePanel extends JPanel implements Observer {
         Graphics2D g2 = (Graphics2D) g;
         g2.setTransform(Scale);
         super.paintComponent(g2);
-        render((Graphics2D) g);
+        if (isPlaying) {
+            render((Graphics2D) g);
+        }
     }
 
     @Override

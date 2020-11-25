@@ -35,18 +35,10 @@ public class App {
     public App() {
         try {
             this.socket = new DatagramSocket();
-            Snake snake = new Snake(gameWidth, gameHeight);
-            Food food = new Food(gameWidth, gameHeight);
             SettingsForm settingsForm = new SettingsForm();
-            mainForm = new MainForm(settingsForm);
             settingsForm.setGameConfig(gameConfig);
             settingsForm.setPlayerName(playerName);
-            mainForm.getGamePanel().setGameSize(gameWidth, gameHeight);
-            mainForm.getGamePanel().setSnake(snake);
-            mainForm.getGamePanel().setFood(food);
-            mainForm.getGamePanel().setKeyBindings();
-            Game game = new Game(snake, food, (Observer) mainForm.getGamePanel(), gameWidth, gameHeight);
-            game.start(100);
+            mainForm = new MainForm(settingsForm);
         } catch (SocketException e) {
             e.printStackTrace();
         }

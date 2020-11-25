@@ -51,6 +51,10 @@ public class SettingsForm extends JFrame {
         this.gameConfig = gameConfig;
     }
 
+    public SnakeProto.GameConfig.Builder getGameConfig() {
+        return gameConfig;
+    }
+
     public void setPlayerName(SnakeProto.GameMessage.JoinMsg.Builder playerName) {
         this.playerName = playerName;
     }

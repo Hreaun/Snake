@@ -10,12 +10,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Food {
     private final List<SnakeProto.GameState.Coord> foods;
     private boolean[][] busyField;
-    private int foodAmount = 3;
+    private int foodStatic;
+    private int foodPerPlayer;
     private final Random random;
     private final int gameWidth;
     private final int gameHeight;
 
-    public Food(int gameWidth, int gameHeight) {
+    public Food(int foodStatic, int foodPerPlayer, int gameWidth, int gameHeight) {
+        this.foodStatic = foodStatic;
+        this.foodPerPlayer = foodPerPlayer;
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
         random = new Random();
@@ -38,6 +41,8 @@ public class Food {
             busyField[point.getX()][point.getY()] = true;
             busyPointsCounter.getAndIncrement();
         }));
+
+        int foodAmount = foodStatic + foodPerPlayer * snakes.size();
 
         if ((gameWidth * gameHeight - busyPointsCounter.intValue()) >= foodAmount) {
             for (int i = 0; i < foodAmount; i++) {

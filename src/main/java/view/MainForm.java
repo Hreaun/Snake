@@ -1,5 +1,7 @@
 package view;
 
+import model.Game;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -23,7 +25,7 @@ public class MainForm extends JFrame {
         $$$setupUI$$$();
         this.setContentPane(mainPanel);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        gamePanel.setBackground(Color.RED);
+        gamePanel.setBackground(Color.GRAY);
         exitButton.addActionListener(actionEvent -> System.out.println("exit"));
         playersList.setListData(new String[]{"Jane Doe", "John Smith", "Kathy Green"});
         playersList.setVisibleRowCount(-1);
@@ -33,6 +35,9 @@ public class MainForm extends JFrame {
         settingsButton.addActionListener(actionEvent
                 -> settingsForm.setVisible(true));
         this.setVisible(true);
+
+        newGameButton.addActionListener(actionEvent ->
+                Game.startNewGame(getGamePanel(), settingsForm.getGameConfig()));
     }
 
     public void setNewGame(String name, int number, String size, String food) {
@@ -42,6 +47,10 @@ public class MainForm extends JFrame {
 
     public GamePanel getGamePanel() {
         return (GamePanel) gamePanel;
+    }
+
+    public void setGamePanel(GamePanel gamePanel) {
+        this.gamePanel = gamePanel;
     }
 
     /**
