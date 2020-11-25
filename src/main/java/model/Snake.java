@@ -35,7 +35,7 @@ public class Snake {
         packCoords();
     }
 
-    public void checkFoodCollision(Food food, SnakeProto.GameState.Coord head) {
+    private void checkFoodCollision(Food food, SnakeProto.GameState.Coord head) {
         food.getFoods().forEach(f -> {
             if ((head.getX() == f.getX()) && head.getY() == f.getY()) {
                 ateFood = true;
@@ -44,6 +44,18 @@ public class Snake {
         if (ateFood) {
             food.getFoods().remove(head);
         }
+    }
+
+    public boolean checkSnakeCollision(Snake snake) {
+        boolean collision = false;
+        List<SnakeProto.GameState.Coord> coords = snake.getCoords();
+        for (int i = 1; i < coords.size(); i++) {
+            if ((coords.get(i).getX() == this.snake.getPoints(0).getX())
+                    && (coords.get(i).getY() == this.snake.getPoints(0).getY())) {
+                collision = true;
+            }
+        }
+        return collision;
     }
 
     public void setNextDirection(SnakeProto.Direction nextDirection) {

@@ -18,11 +18,12 @@ public class Game extends Observable {
         addObserver(o);
     }
 
-    private void snakesUpdate() {
+    private boolean snakesUpdate() {
         snake.moveForward(food);
         List<SnakeProto.GameState.Snake.Builder> snakes = new ArrayList<>();
         snakes.add(snake.getSnake());
         food.updateFood(snakes);
+        return snake.checkSnakeCollision(snake);
     }
 
     public void start(int stateDelayMs) {
@@ -30,7 +31,9 @@ public class Game extends Observable {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                snakesUpdate();
+                if (snakesUpdate()) {
+                    timer.cancel();
+                }
                 setChanged();
                 notifyObservers();
             }
