@@ -52,7 +52,8 @@ public class GamePanel extends JPanel implements Observer {
 
     @Override
     protected void paintComponent(Graphics g) {
-        double k = Math.min((double) this.getHeight(), this.getWidth()) / Math.max((double) gameHeight, gameWidth);
+        double k = Math.min((double) this.getHeight(),
+                        this.getWidth()) / Math.max((double) gameHeight, gameWidth);
         AffineTransform Scale = AffineTransform.getScaleInstance(k, k);
         Graphics2D g2 = (Graphics2D) g;
         g2.setTransform(Scale);

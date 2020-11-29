@@ -13,7 +13,7 @@ public class MulticastListener extends Thread {
     private final int PORT = 9192;
     private final String IP_ADDR = "239.192.0.4";
 
-    public MulticastListener(App app) throws IOException {
+    public MulticastListener(App app) {
         this.app = app;
         try {
             multicastSocket = new MulticastSocket(PORT);
@@ -23,14 +23,13 @@ public class MulticastListener extends Thread {
             if (multicastSocket != null) {
                 multicastSocket.close();
             }
-            throw e;
         }
     }
 
 
     @Override
     public void run() {
-        byte[] buf = new byte[1024];
+        byte[] buf = new byte[128];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         while (true) {
             try {

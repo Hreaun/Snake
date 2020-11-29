@@ -5,7 +5,6 @@ import proto.SnakeProto;
 
 import java.net.DatagramPacket;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class MessageParser {
     private DatagramPacket packet;
@@ -22,14 +21,7 @@ public class MessageParser {
     }
 
     public String getHostName() {
-        AtomicReference<String> name = new AtomicReference<>("");
-        gameMsg.getAnnouncement().getPlayers().getPlayersList().forEach(player -> {
-            if (player.getIpAddress().equals(packet.getAddress().toString())
-                    && player.getPort() == packet.getPort()) {
-                name.set(player.getName());
-            }
-        });
-        return name.get();
+        return gameMsg.getAnnouncement().getPlayers().getPlayersList().get(0).getName();
     }
 
     public String getSize() {
@@ -37,7 +29,7 @@ public class MessageParser {
                 " * " + gameMsg.getAnnouncement().getConfig().getHeight();
     }
 
-    public String getFood(){
+    public String getFood() {
         return gameMsg.getAnnouncement().getConfig().getFoodStatic() +
                 " + " + gameMsg.getAnnouncement().getConfig().getFoodPerPlayer() + "x";
     }

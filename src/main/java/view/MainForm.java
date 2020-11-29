@@ -19,6 +19,7 @@ public class MainForm extends JFrame {
     private JList<String> settingsList;
     private JScrollPane gamesTablePane;
     private JButton settingsButton;
+    private final Game game = new Game();
     private final SettingsForm settingsForm; // скрывать при подключении / запуске новой игры, показывать при выходе ??
 
     public MainForm(SettingsForm settingsForm) {
@@ -37,11 +38,22 @@ public class MainForm extends JFrame {
         this.setVisible(true);
 
         newGameButton.addActionListener(actionEvent ->
-                Game.startNewGame(getGamePanel(), settingsForm.getGameConfig()));
+                game.startNewGame(getGamePanel(), settingsForm.getGameConfig(), settingsForm.getPlayerName()));
     }
 
-    public void setNewGame(String name, int number, String size, String food) {
+    public void setNewOrUpdateGame(String name, Integer number, String size, String food) {
         JButton enterButton = new JButton("->");
+        Object[] data = new Object[]{name, number, size, food, enterButton};
+        for (int i = 0; i < gamesTableModel.getRowCount(); i++) {
+            if (gamesTableModel.getValueAt(i, 1) == number) {
+                for (int j = 0; j < gamesTableModel.getColumnCount(); j++) {
+                    if (gamesTableModel.getValueAt(i, j) != data[j]) {
+                        gamesTableModel.setValueAt(data[j], i, j);
+                    }
+                }
+                return;
+            }
+        }
         gamesTableModel.insertRow(0, new Object[]{name, number, size, food, enterButton});
     }
 

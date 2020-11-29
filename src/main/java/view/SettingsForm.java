@@ -59,6 +59,10 @@ public class SettingsForm extends JFrame {
         this.playerName = playerName;
     }
 
+    public String getPlayerName() {
+        return this.playerName.getName();
+    }
+
     private void checkName() throws InvalidSettingsException {
         if (nameField.getText().length() > 40) {
             throw new InvalidSettingsException("Name must be less than 40 characters.");
