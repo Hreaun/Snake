@@ -19,7 +19,7 @@ public class MainForm extends JFrame {
     private JList<String> settingsList;
     private JScrollPane gamesTablePane;
     private JButton settingsButton;
-    private final SettingsForm settingsForm; // скрывать при подключении / запуске новой игры, показывать при выходе
+    private final SettingsForm settingsForm; // скрывать при подключении / запуске новой игры, показывать при выходе ??
 
     public MainForm(SettingsForm settingsForm) {
         $$$setupUI$$$();

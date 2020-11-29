@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Observer;
 
 public class App {
     private DatagramSocket socket;
@@ -20,8 +19,6 @@ public class App {
     private final MessageParser messageParser = new MessageParser();
     private final SnakeProto.GameConfig.Builder gameConfig = SnakeProto.GameConfig.newBuilder();
     private final SnakeProto.GameMessage.JoinMsg.Builder playerName = SnakeProto.GameMessage.JoinMsg.newBuilder();
-    private final int gameWidth = 100;
-    private final int gameHeight = 100;
 
 
     public void addGame(DatagramPacket packet) {
