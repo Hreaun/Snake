@@ -37,8 +37,10 @@ public class MainForm extends JFrame {
                 -> settingsForm.setVisible(true));
         this.setVisible(true);
 
-        newGameButton.addActionListener(actionEvent ->
-                game.startNewGame(getGamePanel(), settingsForm.getGameConfig(), settingsForm.getPlayerName()));
+        newGameButton.addActionListener(actionEvent -> {
+            settingsForm.saveSettings();
+            game.startNewGame(getGamePanel(), settingsForm.getGameConfig(), settingsForm.getPlayerName());
+        });
     }
 
     public void setNewOrUpdateGame(String name, Integer number, String size, String food) {

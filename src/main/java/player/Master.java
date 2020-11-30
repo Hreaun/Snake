@@ -20,20 +20,17 @@ public class Master extends Observable implements Player {
     Snake snake;
     Food food;
     String name;
-    int stateDelayMs;
-    private int gameWidth;
-    private int gameHeight;
 
     public Master(GamePanel gamePanel, SnakeProto.GameConfig.Builder settings, String name, DatagramSocket socket) {
         this.socket = socket;
         this.name = name;
         this.gameConfig = settings.clone();
-        this.gameWidth = settings.getWidth();
-        this.gameHeight = settings.getHeight();
-        this.stateDelayMs = settings.getStateDelayMs();
-        snake = new Snake(gameWidth, gameHeight);
-        food = new Food(settings.getFoodStatic(), (int) settings.getFoodPerPlayer(), gameWidth, gameHeight);
-        gamePanel.setGameSize(gameWidth, gameHeight);
+        snake = new Snake(gameConfig.getWidth(), gameConfig.getHeight());
+        food = new Food(gameConfig.getFoodStatic(),
+                (int) gameConfig.getFoodPerPlayer(),
+                gameConfig.getWidth(),
+                gameConfig.getHeight());
+        gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
         gamePanel.setSnake(snake);
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
@@ -90,7 +87,7 @@ public class Master extends Observable implements Player {
         announceThread.start();
     }
 
-    public void stop(){
+    public void stop() {
         announceThread.interrupt();
     }
 
@@ -107,6 +104,6 @@ public class Master extends Observable implements Player {
                 setChanged();
                 notifyObservers();
             }
-        }, 0, stateDelayMs);
+        }, 0, gameConfig.getStateDelayMs());
     }
 }

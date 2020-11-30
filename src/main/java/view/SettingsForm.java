@@ -36,15 +36,7 @@ public class SettingsForm extends JFrame {
         this.pack();
         this.setVisible(false);
         this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        saveSettingsButton.addActionListener(actionEvent -> {
-            try {
-                checkName();
-                setSettings();
-            } catch (InvalidSettingsException e) {
-                JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Settings error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        saveSettingsButton.addActionListener(actionEvent -> setSettings());
     }
 
     public void setGameConfig(SnakeProto.GameConfig.Builder gameConfig) {
@@ -63,14 +55,20 @@ public class SettingsForm extends JFrame {
         return this.playerName.getName();
     }
 
+    public void saveSettings() {
+        setSettings();
+    }
+
     private void checkName() throws InvalidSettingsException {
         if (nameField.getText().length() > 40) {
+            nameField.setText(nameField.getText().substring(0, 40));
             throw new InvalidSettingsException("Name must be less than 40 characters.");
         }
     }
 
     private void setSettings() {
         try {
+            checkName();
             width.commitEdit();
             height.commitEdit();
             foodStatic.commitEdit();
@@ -79,6 +77,9 @@ public class SettingsForm extends JFrame {
             deadFoodProb.commitEdit();
             pingDelay.commitEdit();
             nodeTimeout.commitEdit();
+        } catch (InvalidSettingsException e) {
+            JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Settings error",
+                    JOptionPane.ERROR_MESSAGE);
         } catch (ParseException ignored) {
         }
         playerName.setName(nameField.getText());
