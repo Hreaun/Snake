@@ -1,5 +1,6 @@
 package view;
 
+import model.App;
 import model.Game;
 
 import javax.swing.*;
@@ -19,11 +20,12 @@ public class MainForm extends JFrame {
     private JList<String> settingsList;
     private JScrollPane gamesTablePane;
     private JButton settingsButton;
-    private final Game game = new Game();
+    private final Game game;
     private final SettingsForm settingsForm; // скрывать при подключении / запуске новой игры, показывать при выходе ??
 
-    public MainForm(SettingsForm settingsForm) {
+    public MainForm(SettingsForm settingsForm, Game game) {
         $$$setupUI$$$();
+        this.game = game;
         this.setContentPane(mainPanel);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         gamePanel.setBackground(Color.GRAY);
@@ -126,8 +128,16 @@ public class MainForm extends JFrame {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 if (gamesTable.getSelectedColumn() == 4) {
-                    System.out.println(gamesTable.getValueAt(gamesTable.getSelectedRow(), 0).toString());
-                }
+                    settingsForm.saveSettings();
+                    int hostId = (Integer) gamesTable.getValueAt(gamesTable.getSelectedRow(), 1);
+                    try {
+                        game.joinGame(settingsForm.getPlayerName(), hostId);
+                    } catch (JoinGameException e) {
+                        JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
+                                "Game connection error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } // иначе VIEWER
             }
 
             @Override

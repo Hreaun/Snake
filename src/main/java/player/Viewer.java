@@ -5,4 +5,9 @@ public class Viewer implements Player{
     public void start() {
 
     }
+
+    @Override
+    public void stop() {
+
+    }
 }

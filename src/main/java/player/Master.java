@@ -87,6 +87,7 @@ public class Master extends Observable implements Player {
         announceThread.start();
     }
 
+    @Override
     public void stop() {
         announceThread.interrupt();
     }

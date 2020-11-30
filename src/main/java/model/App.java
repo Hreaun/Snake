@@ -36,12 +36,16 @@ public class App {
                 messageParser.getSize(), messageParser.getFood());
     }
 
+    public InetSocketAddress getHost(int hostId) {
+        return gamesMap.get(hostId);
+    }
+
     public App() {
         SettingsForm settingsForm = new SettingsForm();
         settingsForm.setGameConfig(gameConfig);
         settingsForm.setPlayerName(playerName);
         MulticastListener multicastListener = new MulticastListener(this);
+        mainForm = new MainForm(settingsForm, new Game(this));
         multicastListener.start();
-        mainForm = new MainForm(settingsForm);
     }
 }
