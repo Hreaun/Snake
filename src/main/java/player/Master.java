@@ -1,5 +1,6 @@
 package player;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import model.Food;
 import model.Snake;
 import proto.SnakeProto;
@@ -9,41 +10,122 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 import static java.lang.Thread.sleep;
 
 public class Master extends Observable implements Player {
-    private DatagramSocket socket;
-    private SnakeProto.GameConfig.Builder gameConfig;
-    Thread announceThread;
-    Snake snake;
-    Food food;
-    String name;
+    private final DatagramSocket socket;
+    private final SnakeProto.GameConfig.Builder gameConfig;
+    private Map<InetSocketAddress, SnakeProto.GameMessage> steerMessages;
+    private Map<InetSocketAddress, SnakeProto.GameMessage.JoinMsg> joinMessages;
+    private final Map<InetSocketAddress, Long> lastMsgTime = new HashMap<>();
+    private final Map<Long, List<InetSocketAddress>> ackMessages = new HashMap<>();
+    private final Map<Integer, SnakeProto.GameMessage> sentMessages = new HashMap<>();
+    private Thread announceThread;
+    private final Map<InetSocketAddress, Snake> snakes = new HashMap<>();
+    private final Food food;
+    private final String name;
 
-    public Master(GamePanel gamePanel, SnakeProto.GameConfig.Builder settings, String name, DatagramSocket socket) {
+    public Master(GamePanel gamePanel,
+                  SnakeProto.GameConfig.Builder settings,
+                  String name,
+                  DatagramSocket socket) {
         this.socket = socket;
         this.name = name;
         this.gameConfig = settings.clone();
-        snake = new Snake(gameConfig.getWidth(), gameConfig.getHeight());
+        snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), new Snake(gameConfig.getWidth(), gameConfig.getHeight()));
         food = new Food(gameConfig.getFoodStatic(),
                 (int) gameConfig.getFoodPerPlayer(),
                 gameConfig.getWidth(),
                 gameConfig.getHeight());
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
-        gamePanel.setSnake(snake);
+        gamePanel.setSnake(snakes.get(socket.getLocalSocketAddress())); // тоже List
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
         gamePanel.setPlaying(true);
     }
 
-    private boolean snakesUpdate() {
-        snake.moveForward(food);
-        List<SnakeProto.GameState.Snake.Builder> snakes = new ArrayList<>();
-        snakes.add(snake.getSnake());
-        food.updateFood(snakes);
-        return snake.checkSnakeCollision(snake);
+    private void updateState() {
+        snakes.forEach((addr, snake) -> {
+            if (steerMessages.containsKey(addr)) {
+                snake.setNextDirection(steerMessages.get(addr).getSteer().getDirection());
+            }
+            snake.moveForward(food);
+        });
+        snakes.forEach((addr, snake) -> {
+            snake.checkSnakeCollision(snakes);
+        });
+        food.updateFood(new ArrayList<>(snakes.values()));
+    }
+
+    private void addJoinMsg(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
+        joinMessages.putIfAbsent(socketAddress, gameMsg.getJoin());
+        lastMsgTime.put(socketAddress, Instant.now().toEpochMilli());
+    }
+
+    private void ackPing(InetSocketAddress socketAddress) {
+        lastMsgTime.put(socketAddress, Instant.now().toEpochMilli());
+    }
+
+    private void updateAcks(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
+        ackMessages.get(gameMsg.getMsgSeq()).remove(socketAddress);
+    }
+
+    private void addSteerMsg(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
+        lastMsgTime.put(socketAddress, Instant.now().toEpochMilli());
+        if (steerMessages.containsKey(socketAddress)) {
+            if (steerMessages.get(socketAddress).getMsgSeq() >= gameMsg.getMsgSeq()) {
+                return;
+            }
+        }
+        steerMessages.put(socketAddress, gameMsg);
+    }
+
+    private void changePlayerRole(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
+        steerMessages.remove(socketAddress);
+        lastMsgTime.put(socketAddress, Instant.now().toEpochMilli());
+        //смена роли NORMAL -> VIEWER
+    }
+
+
+    private void recvMessages() {
+        Instant startTime = Instant.now();
+        steerMessages = new HashMap<>();
+        joinMessages = new HashMap<>();
+        Instant endTime = Instant.now();
+        while (Duration.between(startTime, endTime).toMillis() < gameConfig.getStateDelayMs()) {
+            byte[] buf = new byte[128];
+            DatagramPacket packet = new DatagramPacket(buf, buf.length);
+            try {
+                socket.setSoTimeout((int) Duration.between(startTime, endTime).toMillis());
+                socket.receive(packet);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            byte[] msg = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
+            try {
+                SnakeProto.GameMessage gameMsg = SnakeProto.GameMessage.parseFrom(msg);
+                if (gameMsg.hasJoin()) {
+                    addJoinMsg((InetSocketAddress) packet.getSocketAddress(), gameMsg);
+                } else if (gameMsg.hasPing()) {
+                    ackPing((InetSocketAddress) packet.getSocketAddress());
+                } else if (gameMsg.hasAck()) {
+                    updateAcks((InetSocketAddress) packet.getSocketAddress(), gameMsg);
+                } else if (gameMsg.hasSteer()) {
+                    addSteerMsg((InetSocketAddress) packet.getSocketAddress(), gameMsg);
+                } else if (gameMsg.hasRoleChange()) {
+                    changePlayerRole((InetSocketAddress) packet.getSocketAddress(), gameMsg);
+                }
+            } catch (InvalidProtocolBufferException e) {
+                e.printStackTrace();
+            }
+            endTime = Instant.now();
+        }
     }
 
     private void sendAnnounce() {
@@ -99,9 +181,8 @@ public class Master extends Observable implements Player {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if (snakesUpdate()) {
-                    timer.cancel();
-                }
+                recvMessages();
+                updateState();
                 setChanged();
                 notifyObservers();
             }

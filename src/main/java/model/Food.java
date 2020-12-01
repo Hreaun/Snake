@@ -29,7 +29,7 @@ public class Food {
         return foods;
     }
 
-    public void updateFood(List<SnakeProto.GameState.Snake.Builder> snakes) {
+    public void updateFood(List<Snake> snakes) {
         if (foods.size() != 0) {
             return;
         }
@@ -37,7 +37,7 @@ public class Food {
         busyField = new boolean[gameWidth][gameHeight];
 
         AtomicInteger busyPointsCounter = new AtomicInteger();
-        snakes.forEach(snake -> snake.getPointsList().forEach(point -> {
+        snakes.forEach(snake -> snake.getUnpackedCoords().forEach(point -> {
             busyField[point.getX()][point.getY()] = true;
             busyPointsCounter.getAndIncrement();
         }));
