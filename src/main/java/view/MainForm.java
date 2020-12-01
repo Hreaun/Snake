@@ -1,6 +1,5 @@
 package view;
 
-import model.App;
 import model.Game;
 
 import javax.swing.*;
@@ -118,12 +117,18 @@ public class MainForm extends JFrame {
         gamePanel = new GamePanel();
 
         gamesTableModel =
-                new DefaultTableModel(new String[]{"Host", "#", "Size", "Food", "Enter"}, 0);
+                new DefaultTableModel(new String[]{"Host", "#", "Size", "Food", "Enter"}, 0) {
+                    @Override
+                    public boolean isCellEditable(int row, int column) {
+                        return false;
+                    }
+                };
         gamesTable = new JTable(gamesTableModel);
 
         // рендер кнопки в таблице
         gamesTable.getColumn("Enter")
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> (JButton) value);
+
         gamesTable.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {

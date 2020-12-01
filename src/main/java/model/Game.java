@@ -17,7 +17,7 @@ import java.util.Arrays;
 public class Game {
     private DatagramSocket socket;
     private Player player;
-    private App app;
+    private final App app;
 
     public Game(App app) {
         this.app = app;
