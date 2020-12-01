@@ -2,6 +2,7 @@ package model;
 
 import proto.SnakeProto;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,6 +28,12 @@ public class Food {
 
     public List<SnakeProto.GameState.Coord> getFoods() {
         return foods;
+    }
+
+    public void addToCheckField(InetSocketAddress[][] field) {
+        foods.forEach(point -> {
+            field[point.getX()][point.getY()] = new InetSocketAddress(0);
+        });
     }
 
     public void add(SnakeProto.GameState.Coord point) {

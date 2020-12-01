@@ -18,18 +18,20 @@ import java.util.*;
 import static java.lang.Thread.sleep;
 
 public class Master extends Observable implements Player {
+    private int id = 0;
     private int stateOrder = 0;
     private int messageSeq = 0;
     private final DatagramSocket socket;
+    private Thread announceThread;
     private final SnakeProto.GameConfig.Builder gameConfig;
-    private Map<InetSocketAddress, SnakeProto.GameMessage> steerMessages;
-    private Map<InetSocketAddress, SnakeProto.GameMessage.JoinMsg> joinMessages;
-    private final Map<InetSocketAddress, SnakeProto.GamePlayer.Builder> players = new HashMap<>();
+    private final Map<InetSocketAddress, SnakeProto.GameMessage> steerMessages = new HashMap<>();
+    private final Map<InetSocketAddress, SnakeProto.GameMessage.JoinMsg> joinMessages = new HashMap<>();
     private final Map<InetSocketAddress, Long> lastMsgTime = new HashMap<>();
     private final Map<Long, List<InetSocketAddress>> ackMessages = new HashMap<>();
     private final Map<Integer, SnakeProto.GameMessage> sentMessages = new HashMap<>();
-    private Thread announceThread;
+    private final Map<InetSocketAddress, SnakeProto.GamePlayer.Builder> players = new HashMap<>();
     private final Map<InetSocketAddress, Snake> snakes = new HashMap<>();
+    InetSocketAddress[][] field;
     private final Food food;
     private final String name;
 
@@ -40,11 +42,22 @@ public class Master extends Observable implements Player {
         this.socket = socket;
         this.name = name;
         this.gameConfig = settings.clone();
-        snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), new Snake(gameConfig.getWidth(), gameConfig.getHeight()));
+
+        List<SnakeProto.GameState.Coord> coords = new ArrayList<>();
+        coords.add(SnakeProto.GameState.Coord.newBuilder()
+                .setX(gameConfig.getWidth() / 2)
+                .setY(gameConfig.getHeight() / 2).build());
+        coords.add(SnakeProto.GameState.Coord.newBuilder()
+                .setX(gameConfig.getWidth() / 2)
+                .setY(gameConfig.getHeight() / 2 + 1).build());
+        Snake snake = new Snake(gameConfig.getWidth(), gameConfig.getHeight(), getNextId(), coords, SnakeProto.Direction.UP);
+        snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), snake);
+
         food = new Food(gameConfig.getFoodStatic(),
                 (int) gameConfig.getFoodPerPlayer(),
                 gameConfig.getWidth(),
                 gameConfig.getHeight());
+
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
         gamePanel.setSnake(snakes.get(socket.getLocalSocketAddress())); // тоже List
         gamePanel.setFood(food);
@@ -53,16 +66,20 @@ public class Master extends Observable implements Player {
         gamePanel.setPlaying(true);
     }
 
-    void incrementStateOrder() {
+    private void incrementStateOrder() {
         stateOrder++;
     }
 
-    void incrementMessageSeq() {
+    private void incrementMessageSeq() {
         messageSeq++;
     }
 
+    private int getNextId() {
+        return ++id;
+    }
+
     public void checkSnakesCollision() {
-        InetSocketAddress[][] field = new InetSocketAddress[gameConfig.getWidth()][gameConfig.getHeight()];
+        field = new InetSocketAddress[gameConfig.getWidth()][gameConfig.getHeight()];
         snakes.forEach((addr, snake) -> {
             SnakeProto.GameState.Coord head = snake.getUnpackedCoords().get(0);
             if (field[head.getX()][head.getY()] != null) {
@@ -97,6 +114,73 @@ public class Master extends Observable implements Player {
         checkSnakesCollision();
         snakes.forEach((addr, snake) -> snake.toFood(food, gameConfig.getDeadFoodProb()));
         food.updateFood(new ArrayList<>(snakes.values()));
+    }
+
+    private boolean isEmptySquare(int x, int y) {
+        for (int i = -2; i < 2; i++) {
+            for (int j = -2; j < 2; j++) {
+                if (field[(x + i < 0) ? (gameConfig.getWidth() + i) : ((x + i) % gameConfig.getWidth())]
+                        [(y + j < 0) ? (gameConfig.getHeight() + j) : ((y + j) % gameConfig.getHeight())] != null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void addNewSnake(int x, int y, InetSocketAddress addr) {
+        SnakeProto.Direction direction = SnakeProto.Direction.forNumber(new Random().nextInt(4));
+        SnakeProto.GameState.Coord.Builder tail = SnakeProto.GameState.Coord.newBuilder();
+        switch (Objects.requireNonNull(direction)) {
+            case UP: {
+                tail.setX(x).setY(y + 1);
+                break;
+            }
+            case DOWN: {
+                tail.setX(x).setY(y - 1);
+                break;
+            }
+            case RIGHT: {
+                tail.setX(x - 1).setY(y);
+                break;
+            }
+            case LEFT: {
+                tail.setX(x + 1).setY(y);
+            }
+        }
+        List<SnakeProto.GameState.Coord> coords = new ArrayList<>();
+        coords.add(SnakeProto.GameState.Coord.newBuilder().setX(x).setY(y).build());
+        coords.add(tail.build());
+        Snake snake = new Snake(gameConfig.getWidth(), gameConfig.getHeight(), getNextId(), coords, direction);
+        snakes.put(addr, snake);
+    }
+
+    private boolean addNewSnakeIfEnoughSpace(InetSocketAddress addr) {
+        food.addToCheckField(field);
+        for (int i = 0; i < gameConfig.getWidth(); i += 3) {
+            for (int j = 0; j < gameConfig.getHeight(); j += 3) {
+                if (isEmptySquare(i, j)) {
+                    addNewSnake(i, j, addr);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void joinNewPlayers() {
+        joinMessages.forEach((addr, joinMsg) -> {
+            if (addNewSnakeIfEnoughSpace(addr)) {
+                SnakeProto.GamePlayer.Builder gamePlayer = SnakeProto.GamePlayer.newBuilder();
+                gamePlayer.setName(joinMsg.getName())
+                        .setId(snakes.get(addr).getPlayerId())
+                        .setIpAddress(addr.getAddress().toString())
+                        .setPort(addr.getPort())
+                        .setRole(SnakeProto.NodeRole.NORMAL)
+                        .setScore(0);
+                players.put(addr, gamePlayer);
+            }
+        });
     }
 
     private void addJoinMsg(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
@@ -144,9 +228,7 @@ public class Master extends Observable implements Player {
         });
 
         List<SnakeProto.GamePlayer> gamePlayers = new ArrayList<>();
-        players.forEach((addr, player) -> {
-            gamePlayers.add(player.build());
-        });
+        players.forEach((addr, player) -> gamePlayers.add(player.build()));
 
         SnakeProto.GameState.Builder gameState = SnakeProto.GameState.newBuilder();
         gameState.setStateOrder(stateOrder)
@@ -164,8 +246,8 @@ public class Master extends Observable implements Player {
 
     private void recvMessages() {
         Instant startTime = Instant.now();
-        steerMessages = new HashMap<>();
-        joinMessages = new HashMap<>();
+        steerMessages.clear();
+        joinMessages.clear();
         Instant endTime = Instant.now();
         while (Duration.between(startTime, endTime).toMillis() < gameConfig.getStateDelayMs()) {
             byte[] buf = new byte[128];
@@ -251,7 +333,10 @@ public class Master extends Observable implements Player {
             @Override
             public void run() {
                 recvMessages();
+                //role change message
+                //ping/ack
                 updateState();
+                joinNewPlayers();
 
                 sendStateMessages();
 
