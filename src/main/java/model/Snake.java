@@ -2,23 +2,20 @@ package model;
 
 import proto.SnakeProto;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Random;
 
 public class Snake {
+    private boolean alive = true;
     private final SnakeProto.GameState.Snake.Builder snake;
-    //private List<SnakeProto.GameState.Coord> unpackedCoords;
     private List<SnakeProto.GameState.Coord> packedCoords;
     private SnakeProto.Direction nextDirection;
     private boolean ateFood = false;
     private final int gameWidth;
     private final int gameHeight;
 
-    public SnakeProto.GameState.Snake.Builder getSnake() {
-        return snake;
-    }
+    //public SnakeProto.GameState.Snake.Builder getSnake() {return snake;}
 
     public Snake(int gameWidth, int gameHeight) {
         this.gameWidth = gameWidth;
@@ -47,32 +44,35 @@ public class Snake {
         }
     }
 
-    public void checkSnakeCollision(Map<InetSocketAddress, Snake> snakes) {
-        InetSocketAddress[][] players = new InetSocketAddress[gameWidth][gameHeight];
-        snakes.forEach((addr, snake) -> {
-            SnakeProto.GameState.Coord head = snake.getUnpackedCoords().get(0);
-            if (players[head.getX()][head.getY()] != null) {
-                //текущая snake
-                //и players[head.getX()][head.getY()] snake умирают
-            } else {
-                players[head.getX()][head.getY()] = addr;
-            }
-        });
-        snakes.forEach((addr, snake) -> {
-            List<SnakeProto.GameState.Coord> points = snake.getUnpackedCoords();
-            for (int i = 1; i < points.size(); i++) {
-                if (players[points.get(i).getX()][points.get(i).getY()] != null) {
-                    //текущий игрок +1
-                    //и players[head.getX()][head.getY()] snake умирает
-                } else {
-                    players[points.get(i).getX()][points.get(i).getY()] = addr;
+    public boolean isAlive() {
+        return alive;
+    }
+
+    public void kill() {
+        this.alive = false;
+    }
+
+    void madeZombie() {
+        snake.setState(SnakeProto.GameState.Snake.SnakeState.ZOMBIE);
+    }
+
+    public void toFood(Food food, float probability) {
+        if (!alive) {
+            Random random = new Random();
+            getUnpackedCoords().forEach(point -> {
+                if (random.nextFloat() < probability) {
+                    food.add(point);
                 }
-            }
-        });
+            });
+        }
     }
 
     public void setNextDirection(SnakeProto.Direction nextDirection) {
         this.nextDirection = nextDirection;
+    }
+
+    public SnakeProto.Direction getDirection() {
+        return snake.getHeadDirection();
     }
 
     private void setDirection(SnakeProto.Direction direction) {
@@ -104,6 +104,7 @@ public class Snake {
     }
 
     public List<SnakeProto.GameState.Coord> getPackedCoords() {
+        packCoords();
         return packedCoords;
     }
 

@@ -29,6 +29,10 @@ public class Food {
         return foods;
     }
 
+    public void add(SnakeProto.GameState.Coord point) {
+        foods.add(point);
+    }
+
     public void updateFood(List<Snake> snakes) {
         if (foods.size() != 0) {
             return;
