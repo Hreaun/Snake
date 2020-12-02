@@ -51,7 +51,7 @@ public class Food {
         busyField = new boolean[gameWidth][gameHeight];
 
         AtomicInteger busyPointsCounter = new AtomicInteger();
-        snakes.forEach(snake -> snake.getUnpackedCoords().forEach(point -> {
+        snakes.forEach(snake -> snake.getCoords().forEach(point -> {
             busyField[point.getX()][point.getY()] = true;
             busyPointsCounter.getAndIncrement();
         }));

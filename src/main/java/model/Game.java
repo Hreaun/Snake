@@ -46,9 +46,10 @@ public class Game {
         InetSocketAddress host = app.getHost(hostId);
         SnakeProto.GameMessage.JoinMsg.Builder joinMsg = SnakeProto.GameMessage.JoinMsg.newBuilder();
         joinMsg.setName(name);
-        byte[] buf = SnakeProto.GameMessage.newBuilder().setJoin(joinMsg)
+        SnakeProto.GameMessage gameMessage = SnakeProto.GameMessage.newBuilder().setJoin(joinMsg)
                 .setMsgSeq(msgSeq)
-                .build().toByteArray();
+                .build();
+        byte[] buf = gameMessage.toByteArray();
         DatagramPacket packet =
                 new DatagramPacket(buf, buf.length, host.getAddress(), host.getPort());
 
@@ -57,7 +58,7 @@ public class Game {
                 app.getGameConfig(hostId).getPingDelayMs());
         try {
             socket.send(packet);
-            messageResender.setMessagesToResend(host, msgSeq);
+            messageResender.setMessagesToResend(host, msgSeq, gameMessage);
             messageResender.start();
             socket.setSoTimeout(11_000);
             buf = new byte[128];

@@ -19,7 +19,14 @@ public class MessageResender extends Thread {
         this.pingDelay = pingDelay;
     }
 
-    public void setMessagesToResend(InetSocketAddress addr, Long msgSeq) {
+    private void setMessage(Long msgSeq, SnakeProto.GameMessage message) {
+        synchronized (messages) {
+                messages.put(msgSeq,message);
+        }
+    }
+
+    public void setMessagesToResend(InetSocketAddress addr, Long msgSeq, SnakeProto.GameMessage message) {
+        setMessage(msgSeq, message);
         synchronized (messagesToResend) {
             if (!messagesToResend.containsKey(addr)) {
                 messagesToResend.put(addr, new ArrayList<>());

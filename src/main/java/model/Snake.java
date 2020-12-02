@@ -10,6 +10,7 @@ public class Snake {
     private boolean alive = true;
     private final SnakeProto.GameState.Snake.Builder snake;
     private List<SnakeProto.GameState.Coord> packedCoords;
+    private List<SnakeProto.GameState.Coord> unpackedCoords;
     private SnakeProto.Direction nextDirection;
     private boolean ateFood = false;
     private int gameWidth;
@@ -32,7 +33,7 @@ public class Snake {
         this.snake = snake;
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
-        packedCoords = getUnpackedCoords();
+        packedCoords = snake.getPointsList();
     }
 
     private void checkFoodCollision(Food food, SnakeProto.GameState.Coord head) {
@@ -61,7 +62,7 @@ public class Snake {
     public void toFood(Food food, float probability) {
         if (!alive) {
             Random random = new Random();
-            getUnpackedCoords().forEach(point -> {
+            getCoords().forEach(point -> {
                 if (random.nextFloat() < probability) {
                     food.add(point);
                 }
@@ -106,20 +107,24 @@ public class Snake {
     }
 
     public void setCoords(List<SnakeProto.GameState.Coord> coords) {
+        snake.clearPoints();
         snake.addAllPoints(coords);
     }
 
-    public List<SnakeProto.GameState.Coord> getUnpackedCoords() {
+    public List<SnakeProto.GameState.Coord> getCoords() {
         return snake.getPointsList();
     }
 
+    public List<SnakeProto.GameState.Coord> getUnpackedCoords() {
+        return unpackedCoords;
+    }
+
     public List<SnakeProto.GameState.Coord> getPackedCoords() {
-        packCoords();
         return packedCoords;
     }
 
-    private void packCoords() {
-        List<SnakeProto.GameState.Coord> coords = getUnpackedCoords();
+    public void packCoords() {
+        List<SnakeProto.GameState.Coord> coords = snake.getPointsList();
         SnakeProto.GameState.Coord headCoord = coords.get(0);
 
         packedCoords = new ArrayList<>();
@@ -166,7 +171,8 @@ public class Snake {
     }
 
     public void unpackCoords() {
-        SnakeProto.GameState.Coord headCoord = packedCoords.get(0);
+        List<SnakeProto.GameState.Coord> coords = snake.getPointsList();
+        SnakeProto.GameState.Coord headCoord = coords.get(0);
 
         List<SnakeProto.GameState.Coord> unpackedCoords = new ArrayList<>();
         unpackedCoords.add(headCoord);
@@ -174,33 +180,33 @@ public class Snake {
         int initialX = headCoord.getX();
         int initialY = headCoord.getY();
 
-        for (int i = 1; i < packedCoords.size(); i++) {
-            if (packedCoords.get(i).getX() > 0) {
-                for (int j = 1; j <= packedCoords.get(i).getX(); j++) {
+        for (int i = 1; i < coords.size(); i++) {
+            if (coords.get(i).getX() > 0) {
+                for (int j = 1; j <= coords.get(i).getX(); j++) {
                     initialX = (initialX + 1) % gameWidth;
                     unpackedCoords.add(SnakeProto.GameState.Coord.newBuilder()
                             .setX(initialX)
                             .setY(initialY).build());
                 }
             }
-            if (packedCoords.get(i).getX() < 0) {
-                for (int j = 1; j <= Math.abs(packedCoords.get(i).getX()); j++) {
+            if (coords.get(i).getX() < 0) {
+                for (int j = 1; j <= Math.abs(coords.get(i).getX()); j++) {
                     initialX = (gameWidth + (initialX - 1)) % gameWidth;
                     unpackedCoords.add(SnakeProto.GameState.Coord.newBuilder()
                             .setX(initialX)
                             .setY(initialY).build());
                 }
             }
-            if (packedCoords.get(i).getY() > 0) {
-                for (int j = 1; j <= packedCoords.get(i).getY(); j++) {
+            if (coords.get(i).getY() > 0) {
+                for (int j = 1; j <= coords.get(i).getY(); j++) {
                     initialY = (initialY + 1) % gameHeight;
                     unpackedCoords.add(SnakeProto.GameState.Coord.newBuilder()
                             .setX(initialX)
                             .setY(initialY).build());
                 }
             }
-            if (packedCoords.get(i).getY() < 0) {
-                for (int j = 1; j <= Math.abs(packedCoords.get(i).getY()); j++) {
+            if (coords.get(i).getY() < 0) {
+                for (int j = 1; j <= Math.abs(coords.get(i).getY()); j++) {
                     initialY = (gameHeight + (initialY - 1)) % gameHeight;
                     unpackedCoords.add(SnakeProto.GameState.Coord.newBuilder()
                             .setX(initialX)
@@ -208,12 +214,12 @@ public class Snake {
                 }
             }
         }
-        snake.addAllPoints(unpackedCoords);
+        this.unpackedCoords = unpackedCoords;
     }
 
     public void moveForward(Food food) {
         ateFood = false;
-        List<SnakeProto.GameState.Coord> oldCoords = getUnpackedCoords();
+        List<SnakeProto.GameState.Coord> oldCoords = snake.getPointsList();
         List<SnakeProto.GameState.Coord> newCoords = new ArrayList<>();
         SnakeProto.GameState.Coord oldHeadCoord = oldCoords.get(0);
         setDirection(nextDirection);

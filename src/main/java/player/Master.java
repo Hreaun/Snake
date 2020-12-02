@@ -8,10 +8,7 @@ import proto.SnakeProto;
 import view.GamePanel;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -103,7 +100,7 @@ public class Master extends Observable implements Player {
     public void checkSnakesCollision() {
         field = new InetSocketAddress[gameConfig.getWidth()][gameConfig.getHeight()];
         snakes.forEach((addr, snake) -> {
-            SnakeProto.GameState.Coord head = snake.getUnpackedCoords().get(0);
+            SnakeProto.GameState.Coord head = snake.getCoords().get(0);
             if (field[head.getX()][head.getY()] != null) {
                 snake.kill();
                 snakes.get(field[head.getX()][head.getY()]).kill();
@@ -112,7 +109,7 @@ public class Master extends Observable implements Player {
             }
         });
         snakes.forEach((addr, snake) -> {
-            List<SnakeProto.GameState.Coord> points = snake.getUnpackedCoords();
+            List<SnakeProto.GameState.Coord> points = snake.getCoords();
             for (int i = 1; i < points.size(); i++) {
                 if (field[points.get(i).getX()][points.get(i).getY()] != null) {
                     if (addr != field[points.get(i).getX()][points.get(i).getY()]) {
@@ -132,6 +129,7 @@ public class Master extends Observable implements Player {
             Snake s = new Snake(SnakeProto.GameState.Snake.newBuilder(snake),
                     gameConfig.getWidth(), gameConfig.getHeight());
             s.unpackCoords();
+            s.setCoords(s.getUnpackedCoords());
             sList.add(s);
         });
         Food food = new Food(state.getFoodsList());
@@ -165,22 +163,26 @@ public class Master extends Observable implements Player {
     }
 
     private void addNewSnake(int x, int y, InetSocketAddress addr) {
-        SnakeProto.Direction direction = SnakeProto.Direction.forNumber(new Random().nextInt(4));
+        SnakeProto.Direction direction = null;
         SnakeProto.GameState.Coord.Builder tail = SnakeProto.GameState.Coord.newBuilder();
-        switch (Objects.requireNonNull(direction)) {
-            case UP: {
+        switch (new Random().nextInt(4)) {
+            case 0: {
+                direction = SnakeProto.Direction.UP;
                 tail.setX(x).setY(y + 1);
                 break;
             }
-            case DOWN: {
+            case 1: {
+                direction = SnakeProto.Direction.DOWN;
                 tail.setX(x).setY(y - 1);
                 break;
             }
-            case RIGHT: {
+            case 2: {
+                direction = SnakeProto.Direction.RIGHT;
                 tail.setX(x - 1).setY(y);
                 break;
             }
-            case LEFT: {
+            case 3: {
+                direction = SnakeProto.Direction.LEFT;
                 tail.setX(x + 1).setY(y);
             }
         }
@@ -264,6 +266,7 @@ public class Master extends Observable implements Player {
                 snakeBuilder.setState(SnakeProto.GameState.Snake.SnakeState.ZOMBIE);
             }
             snakeBuilder.setPlayerId(players.get(addr).getId());
+            snake.packCoords();
             snakeBuilder.addAllPoints(snake.getPackedCoords());
             snakeBuilder.setHeadDirection(snake.getDirection());
             snakesProto.add(snakeBuilder.build());
@@ -285,9 +288,7 @@ public class Master extends Observable implements Player {
         return gameMessage.build();
     }
 
-    private void sendStateMessages() {
-        SnakeProto.GameMessage stateMessage = makeStateMessage();
-        updatePanelState(stateMessage.getState().getState());
+    private void sendStateMessages(SnakeProto.GameMessage stateMessage) {
         byte[] buf = stateMessage.toByteArray();
         players.forEach((addr, player) -> {
             if (player.getId() != masterId) {
@@ -295,7 +296,7 @@ public class Master extends Observable implements Player {
                         new DatagramPacket(buf, buf.length, addr.getAddress(), addr.getPort());
                 try {
                     socket.send(packet);
-                    messageResender.setMessagesToResend(addr, msgSeq);
+                    messageResender.setMessagesToResend(addr, msgSeq, stateMessage);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -314,7 +315,8 @@ public class Master extends Observable implements Player {
             byte[] buf = new byte[128];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             try {
-                socket.setSoTimeout((int) Duration.between(startTime, endTime).toMillis());
+                socket.setSoTimeout(gameConfig.getStateDelayMs() -
+                        (int) Duration.between(startTime, endTime).toMillis());
                 socket.receive(packet);
                 byte[] msg = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
                 SnakeProto.GameMessage gameMsg = SnakeProto.GameMessage.parseFrom(msg);
@@ -322,6 +324,7 @@ public class Master extends Observable implements Player {
                 if (gameMsg.hasJoin()) {
                     updateLastMessageTime((InetSocketAddress) packet.getSocketAddress());
                     addJoinMsg((InetSocketAddress) packet.getSocketAddress(), gameMsg);
+                    continue;
                 } else if (gameMsg.hasPing()) {
                     updateLastMessageTime((InetSocketAddress) packet.getSocketAddress());
                 } else if (gameMsg.hasAck()) {
@@ -333,12 +336,13 @@ public class Master extends Observable implements Player {
                     updateLastMessageTime((InetSocketAddress) packet.getSocketAddress());
                     changePlayerRole((InetSocketAddress) packet.getSocketAddress(), gameMsg);
                 }
-
                 sendAck((InetSocketAddress) packet.getSocketAddress(), gameMsg.getMsgSeq());
+            } catch (SocketTimeoutException ignored) {
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                endTime = Instant.now();
             }
-            endTime = Instant.now();
         }
     }
 
@@ -396,12 +400,14 @@ public class Master extends Observable implements Player {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                //recvMessages();
+                SnakeProto.GameMessage stateMessage = makeStateMessage();
+                updatePanelState(stateMessage.getState().getState());
+                sendStateMessages(stateMessage);
+                incrementStateOrder();
+                recvMessages();
                 //role change message
                 updateState();
                 joinNewPlayers();
-                sendStateMessages();
-                incrementStateOrder();
                 setChanged();
                 notifyObservers();
             }

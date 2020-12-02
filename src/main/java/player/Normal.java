@@ -43,10 +43,14 @@ public class Normal extends Observable implements Player{
     }
 
     private void initGamePanel() {
+        System.out.println(state.hasState());
         state.getState().getState().getSnakesList().forEach(snake -> {
+            System.out.println(snake.getPlayerId());
             if (snake.getPlayerId() == id) {
+                System.out.println("ggg");
                 playerSnake = new Snake(SnakeProto.GameState.Snake.newBuilder(snake), gameConfig.getWidth(),
                         gameConfig.getHeight());
+                playerSnake.setNextDirection(snake.getHeadDirection());
             }
         });
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
@@ -68,11 +72,12 @@ public class Normal extends Observable implements Player{
 
 
     private void sendSteerMessage() throws IOException {
-        byte[] buf = makeSteerMsg().toByteArray();
+        SnakeProto.GameMessage message = makeSteerMsg();
+        byte[] buf = message.toByteArray();
         DatagramPacket packet =
                     new DatagramPacket(buf, buf.length, masterAddress.getAddress(), masterAddress.getPort());
         socket.send(packet);
-        messageResender.setMessagesToResend(masterAddress, msgSeq);
+        messageResender.setMessagesToResend(masterAddress, msgSeq, message);
         incrementMsgSeq();
     }
 

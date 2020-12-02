@@ -93,7 +93,9 @@ public class GamePanel extends JPanel implements Observer {
 
         snakes.forEach(snake -> {
             g.setColor(colors[snake.getPlayerId() % colors.length]);
-            snake.getUnpackedCoords().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
+            snake.getCoords().forEach(v -> {
+                g.fillRect(v.getX(), v.getY(), 1, 1);
+            });
         });
         g.setColor(Color.YELLOW);
         food.getFoods().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
