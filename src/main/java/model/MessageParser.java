@@ -20,6 +20,10 @@ public class MessageParser {
         }
     }
 
+    public SnakeProto.GameConfig getConfig() {
+        return gameMsg.getAnnouncement().getConfig();
+    }
+
     public String getHostName() {
         return gameMsg.getAnnouncement().getPlayers().getPlayersList().get(0).getName();
     }

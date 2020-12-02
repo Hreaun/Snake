@@ -1,6 +1,7 @@
 package model;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import connection.MessageResender;
 import player.Master;
 import player.Normal;
 import player.Player;
@@ -41,26 +42,33 @@ public class Game {
     }
 
     public void joinGame(String name, int hostId) throws JoinGameException {
+        long msgSeq = 0;
         InetSocketAddress host = app.getHost(hostId);
         SnakeProto.GameMessage.JoinMsg.Builder joinMsg = SnakeProto.GameMessage.JoinMsg.newBuilder();
         joinMsg.setName(name);
         byte[] buf = SnakeProto.GameMessage.newBuilder().setJoin(joinMsg)
-                .setMsgSeq(1)
+                .setMsgSeq(msgSeq)
                 .build().toByteArray();
         DatagramPacket packet =
                 new DatagramPacket(buf, buf.length, host.getAddress(), host.getPort());
 
         JFrame connectionFrame = showConnectionPanel();
+        MessageResender messageResender = new MessageResender(socket,
+                app.getGameConfig(hostId).getPingDelayMs());
         try {
             socket.send(packet);
+            messageResender.setMessagesToResend(host, msgSeq);
+            messageResender.start();
             socket.setSoTimeout(11_000);
             buf = new byte[128];
             packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
         } catch (SocketTimeoutException e) {
+            messageResender.interrupt();
             throw new JoinGameException("Didn't get an answer from " + host.getAddress().toString() + " "
                     + host.getPort());
         } catch (IOException e) {
+            messageResender.interrupt();
             e.printStackTrace();
         } finally {
             connectionFrame.dispose();
@@ -69,18 +77,22 @@ public class Game {
         try {
             SnakeProto.GameMessage gameMsg = SnakeProto.GameMessage.parseFrom(msg);
             if (gameMsg.hasJoin()) {
+                messageResender.interrupt();
                 throw new JoinGameException("You cannot join your own game!");
             } else if (gameMsg.hasError()) {
+                messageResender.interrupt();
                 throw new JoinGameException(gameMsg.getError().getErrorMessage());
             } else if (gameMsg.hasAck()) {
                 int id = gameMsg.getReceiverId();
+                messageResender.removeMessage(host, msgSeq);
                 if (player != null) {
                     player.stop();
                 }
-                player = new Normal(id);
+                player = new Normal(id, messageResender, socket);
                 player.start();
             }
         } catch (InvalidProtocolBufferException e) {
+            messageResender.interrupt();
             e.printStackTrace();
         }
     }
@@ -89,7 +101,8 @@ public class Game {
         if (player != null) {
             player.stop();
         }
-        player = new Master(gamePanel, settings, name, socket);
+        player = new Master(gamePanel, settings, name, socket,
+                new MessageResender(socket, settings.getPingDelayMs()));
         player.start();
     }
 }
