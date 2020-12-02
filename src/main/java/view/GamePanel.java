@@ -8,17 +8,20 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.geom.AffineTransform;
-import java.util.AbstractMap;
-import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
+import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GamePanel extends JPanel implements Observer {
+    private final Color[] colors = {Color.WHITE, Color.BLUE, Color.CYAN, Color.GREEN,
+            Color.MAGENTA, Color.ORANGE, Color.PINK, Color.RED};
+
     private int gameWidth = 0;
     private int gameHeight = 0;
-    private Snake snake;
+    private Snake playerSnake;
+    private List<Snake> snakes;
+    private List<SnakeProto.GamePlayer> players;
     private Food food;
     private boolean isPlaying = false;
 
@@ -29,6 +32,18 @@ public class GamePanel extends JPanel implements Observer {
 
     public void setPlaying(boolean playing) {
         isPlaying = playing;
+    }
+
+    public void setPlayerSnake(Snake playerSnake) {
+        this.playerSnake = playerSnake;
+    }
+
+    public void setSnakes(List<Snake> snakes) {
+        this.snakes = snakes;
+    }
+
+    public void setPlayers(List<SnakeProto.GamePlayer> players) {
+        this.players = players;
     }
 
     public void setKeyBindings() {
@@ -44,7 +59,7 @@ public class GamePanel extends JPanel implements Observer {
             getActionMap().put(k, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
-                    snake.setNextDirection(v);
+                    playerSnake.setNextDirection(v);
                 }
             });
         });
@@ -53,7 +68,7 @@ public class GamePanel extends JPanel implements Observer {
     @Override
     protected void paintComponent(Graphics g) {
         double k = Math.min((double) this.getHeight(),
-                        this.getWidth()) / Math.max((double) gameHeight, gameWidth);
+                this.getWidth()) / Math.max((double) gameHeight, gameWidth);
         AffineTransform Scale = AffineTransform.getScaleInstance(k, k);
         Graphics2D g2 = (Graphics2D) g;
         g2.setTransform(Scale);
@@ -68,10 +83,6 @@ public class GamePanel extends JPanel implements Observer {
         this.repaint();
     }
 
-    public void setSnake(Snake snake) {
-        this.snake = snake;
-    }
-
     public void setFood(Food food) {
         this.food = food;
     }
@@ -79,8 +90,11 @@ public class GamePanel extends JPanel implements Observer {
     void render(Graphics2D g) {
         g.setColor(Color.BLACK);
         g.fillRect(0, 0, gameWidth, gameHeight);
-        g.setColor(Color.WHITE);
-        snake.getCoords().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
+
+        snakes.forEach(snake -> {
+            g.setColor(colors[snake.getPlayerId() % colors.length]);
+            snake.getUnpackedCoords().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
+        });
         g.setColor(Color.YELLOW);
         food.getFoods().forEach(v -> g.fillRect(v.getX(), v.getY(), 1, 1));
     }

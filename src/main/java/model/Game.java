@@ -41,7 +41,7 @@ public class Game {
         return frame;
     }
 
-    public void joinGame(String name, int hostId) throws JoinGameException {
+    public void joinGame(GamePanel gamePanel, String name, int hostId) throws JoinGameException {
         long msgSeq = 0;
         InetSocketAddress host = app.getHost(hostId);
         SnakeProto.GameMessage.JoinMsg.Builder joinMsg = SnakeProto.GameMessage.JoinMsg.newBuilder();
@@ -88,7 +88,7 @@ public class Game {
                 if (player != null) {
                     player.stop();
                 }
-                player = new Normal(id, messageResender, socket);
+                player = new Normal(gamePanel, id, messageResender, socket, host, app.getGameConfig(hostId));
                 player.start();
             }
         } catch (InvalidProtocolBufferException e) {

@@ -12,8 +12,8 @@ public class Snake {
     private List<SnakeProto.GameState.Coord> packedCoords;
     private SnakeProto.Direction nextDirection;
     private boolean ateFood = false;
-    private final int gameWidth;
-    private final int gameHeight;
+    private int gameWidth;
+    private int gameHeight;
 
     public Snake(int gameWidth, int gameHeight, int playerId,
                  List<SnakeProto.GameState.Coord> initialCoords,
@@ -26,6 +26,13 @@ public class Snake {
                 .addAllPoints(initialCoords)
                 .setState(SnakeProto.GameState.Snake.SnakeState.ALIVE)
                 .setHeadDirection(headDirection);
+    }
+
+    public Snake(SnakeProto.GameState.Snake.Builder snake, int gameWidth, int gameHeight) {
+        this.snake = snake;
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
+        packedCoords = getUnpackedCoords();
     }
 
     private void checkFoodCollision(Food food, SnakeProto.GameState.Coord head) {
@@ -68,6 +75,10 @@ public class Snake {
 
     public SnakeProto.Direction getDirection() {
         return snake.getHeadDirection();
+    }
+
+    public SnakeProto.Direction getNextDirection() {
+        return nextDirection;
     }
 
     public int getPlayerId() {
@@ -154,7 +165,7 @@ public class Snake {
                 .setY(y).build());
     }
 
-    private void unpackCoords() {
+    public void unpackCoords() {
         SnakeProto.GameState.Coord headCoord = packedCoords.get(0);
 
         List<SnakeProto.GameState.Coord> unpackedCoords = new ArrayList<>();

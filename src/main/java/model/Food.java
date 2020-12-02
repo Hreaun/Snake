@@ -13,17 +13,20 @@ public class Food {
     private boolean[][] busyField;
     private int foodStatic;
     private int foodPerPlayer;
-    private final Random random;
-    private final int gameWidth;
-    private final int gameHeight;
+    private final Random random = new Random();
+    private int gameWidth;
+    private int gameHeight;
 
     public Food(int foodStatic, int foodPerPlayer, int gameWidth, int gameHeight) {
         this.foodStatic = foodStatic;
         this.foodPerPlayer = foodPerPlayer;
         this.gameWidth = gameWidth;
         this.gameHeight = gameHeight;
-        random = new Random();
         this.foods = new ArrayList<>();
+    }
+
+    public Food(List<SnakeProto.GameState.Coord> foods) {
+        this.foods = foods;
     }
 
     public List<SnakeProto.GameState.Coord> getFoods() {

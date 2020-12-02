@@ -1,5 +1,6 @@
 package player;
 
+import connection.AckSender;
 import connection.MessageResender;
 import model.Food;
 import model.Snake;
@@ -18,27 +19,38 @@ import java.util.*;
 import static java.lang.Thread.sleep;
 
 public class Master extends Observable implements Player {
+    private int masterId;
+
+    //id увеличивается при создании нового игрока
     private int id = 0;
+
+    //stateOrder увеличивается каждую итерацию таймера
     private int stateOrder = 0;
-    private int messageSeq = 0;
+
+    //увеличивается с каждой отправкой уникального GameMessage
+    private Long msgSeq = 0L;
+
     private final DatagramSocket socket;
     private Thread announceThread;
     private MessageResender messageResender;
     private final SnakeProto.GameConfig.Builder gameConfig;
     private final Map<InetSocketAddress, SnakeProto.GameMessage> steerMessages = new HashMap<>();
-    private final Map<InetSocketAddress, SnakeProto.GameMessage.JoinMsg> joinMessages = new HashMap<>();
+    private final Map<InetSocketAddress, SnakeProto.GameMessage> joinMessages = new HashMap<>();
     private final Map<InetSocketAddress, Long> lastMsgTime = new HashMap<>();
     private final Map<InetSocketAddress, SnakeProto.GamePlayer.Builder> players = new HashMap<>();
     private final Map<InetSocketAddress, Snake> snakes = new HashMap<>();
-    InetSocketAddress[][] field;
+    private final Snake playerSnake;
+    private InetSocketAddress[][] field;
     private final Food food;
     private final String name;
+    private final GamePanel gamePanel;
 
     public Master(GamePanel gamePanel,
                   SnakeProto.GameConfig.Builder settings,
                   String name,
                   DatagramSocket socket,
                   MessageResender messageResender) {
+        this.gamePanel = gamePanel;
         this.socket = socket;
         this.name = name;
         this.gameConfig = settings.clone();
@@ -51,8 +63,17 @@ public class Master extends Observable implements Player {
         coords.add(SnakeProto.GameState.Coord.newBuilder()
                 .setX(gameConfig.getWidth() / 2)
                 .setY(gameConfig.getHeight() / 2 + 1).build());
-        Snake snake = new Snake(gameConfig.getWidth(), gameConfig.getHeight(), getNextId(), coords, SnakeProto.Direction.UP);
-        snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), snake);
+        masterId = getNextId();
+        playerSnake = new Snake(gameConfig.getWidth(), gameConfig.getHeight(), masterId, coords, SnakeProto.Direction.UP);
+        snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), playerSnake);
+        SnakeProto.GamePlayer.Builder gamePlayer = SnakeProto.GamePlayer.newBuilder();
+        gamePlayer.setName(name)
+                .setId(masterId)
+                .setIpAddress(socket.getLocalAddress().toString())
+                .setPort(socket.getPort())
+                .setRole(SnakeProto.NodeRole.MASTER)
+                .setScore(0);
+        players.put((InetSocketAddress) socket.getLocalSocketAddress(), gamePlayer);
 
         food = new Food(gameConfig.getFoodStatic(),
                 (int) gameConfig.getFoodPerPlayer(),
@@ -60,7 +81,7 @@ public class Master extends Observable implements Player {
                 gameConfig.getHeight());
 
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
-        gamePanel.setSnake(snakes.get(socket.getLocalSocketAddress())); // тоже List
+        gamePanel.setPlayerSnake(playerSnake);
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
@@ -72,7 +93,7 @@ public class Master extends Observable implements Player {
     }
 
     private void incrementMessageSeq() {
-        messageSeq++;
+        msgSeq++;
     }
 
     private int getNextId() {
@@ -103,6 +124,20 @@ public class Master extends Observable implements Player {
                 }
             }
         });
+    }
+
+    private void updatePanelState(SnakeProto.GameState state) {
+        List<Snake> sList = new ArrayList<>();
+        state.getSnakesList().forEach(snake -> {
+            Snake s = new Snake(SnakeProto.GameState.Snake.newBuilder(snake),
+                    gameConfig.getWidth(), gameConfig.getHeight());
+            s.unpackCoords();
+            sList.add(s);
+        });
+        Food food = new Food(state.getFoodsList());
+        gamePanel.setFood(food);
+        gamePanel.setPlayers(state.getPlayers().getPlayersList());
+        gamePanel.setSnakes(sList);
     }
 
     private void updateState() {
@@ -169,23 +204,28 @@ public class Master extends Observable implements Player {
         return false;
     }
 
-    private void joinNewPlayers() { // добавить ответ
-        joinMessages.forEach((addr, joinMsg) -> {
+    private void joinNewPlayers() {
+        joinMessages.forEach((addr, gameMessage) -> {
             if (addNewSnakeIfEnoughSpace(addr)) {
                 SnakeProto.GamePlayer.Builder gamePlayer = SnakeProto.GamePlayer.newBuilder();
-                gamePlayer.setName(joinMsg.getName())
+                gamePlayer.setName(gameMessage.getJoin().getName())
                         .setId(snakes.get(addr).getPlayerId())
                         .setIpAddress(addr.getAddress().toString())
                         .setPort(addr.getPort())
                         .setRole(SnakeProto.NodeRole.NORMAL)
                         .setScore(0);
                 players.put(addr, gamePlayer);
+                try {
+                    AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, players.get(addr).getId());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
 
     private void addJoinMsg(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
-        joinMessages.putIfAbsent(socketAddress, gameMsg.getJoin());
+        joinMessages.putIfAbsent(socketAddress, gameMsg);
     }
 
     private void updateLastMessageTime(InetSocketAddress socketAddress) {
@@ -211,15 +251,7 @@ public class Master extends Observable implements Player {
     }
 
     private void sendAck(InetSocketAddress socketAddress, Long msgSeq) throws IOException {
-        SnakeProto.GameMessage.AckMsg ackMsg = SnakeProto.GameMessage.AckMsg.newBuilder().build();
-        SnakeProto.GameMessage gameMessage = SnakeProto.GameMessage.newBuilder()
-                .setAck(ackMsg)
-                .setMsgSeq(msgSeq)
-                .build();
-        byte[] buf = gameMessage.toByteArray();
-        DatagramPacket packet =
-                new DatagramPacket(buf, buf.length, socketAddress.getAddress(), socketAddress.getPort());
-        socket.send(packet);
+        AckSender.sendAck(socketAddress, msgSeq, socket);
     }
 
     private SnakeProto.GameMessage makeStateMessage() {
@@ -248,20 +280,25 @@ public class Master extends Observable implements Player {
                 .setConfig(gameConfig);
         SnakeProto.GameMessage.Builder gameMessage = SnakeProto.GameMessage.newBuilder();
         gameMessage.setState(SnakeProto.GameMessage.StateMsg.newBuilder().setState(gameState).build())
-                .setMsgSeq(messageSeq);
+                .setMsgSeq(msgSeq);
 
         return gameMessage.build();
     }
 
     private void sendStateMessages() {
-        byte[] buf = makeStateMessage().toByteArray();
-        players.forEach((addr, player)-> {
-            DatagramPacket packet =
-                    new DatagramPacket(buf, buf.length, addr.getAddress(), addr.getPort());
-            try {
-                socket.send(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
+        SnakeProto.GameMessage stateMessage = makeStateMessage();
+        updatePanelState(stateMessage.getState().getState());
+        byte[] buf = stateMessage.toByteArray();
+        players.forEach((addr, player) -> {
+            if (player.getId() != masterId) {
+                DatagramPacket packet =
+                        new DatagramPacket(buf, buf.length, addr.getAddress(), addr.getPort());
+                try {
+                    socket.send(packet);
+                    messageResender.setMessagesToResend(addr, msgSeq);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
         incrementMessageSeq();
@@ -359,7 +396,7 @@ public class Master extends Observable implements Player {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                recvMessages();
+                //recvMessages();
                 //role change message
                 updateState();
                 joinNewPlayers();

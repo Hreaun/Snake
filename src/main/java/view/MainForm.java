@@ -136,7 +136,7 @@ public class MainForm extends JFrame {
                     settingsForm.saveSettings();
                     int hostId = (Integer) gamesTable.getValueAt(gamesTable.getSelectedRow(), 1);
                     try {
-                        game.joinGame(settingsForm.getPlayerName(), hostId);
+                        game.joinGame(getGamePanel(), settingsForm.getPlayerName(), hostId);
                     } catch (JoinGameException e) {
                         JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
                                 "Game connection error",
