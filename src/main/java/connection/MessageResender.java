@@ -21,7 +21,7 @@ public class MessageResender extends Thread {
 
     private void setMessage(Long msgSeq, SnakeProto.GameMessage message) {
         synchronized (messages) {
-                messages.put(msgSeq,message);
+            messages.put(msgSeq, message);
         }
     }
 
@@ -62,14 +62,34 @@ public class MessageResender extends Thread {
                 }
             }
         }
-
     }
 
     public void removeMessage(InetSocketAddress addr, Long msgSeq) {
         synchronized (messagesToResend) {
             if (messagesToResend.containsKey(addr)) {
+                System.out.println("remove " + msgSeq);
                 messagesToResend.get(addr).remove(msgSeq);
                 checkMessages();
+            }
+        }
+    }
+
+    void resendMessages() throws IOException {
+        Map<Long, SnakeProto.GameMessage> messages = this.messages;
+        synchronized (messagesToResend) {
+            for (Map.Entry<InetSocketAddress, List<Long>> sentMsgEntry : messagesToResend.entrySet()) {
+                synchronized (getMessageSeqs(sentMsgEntry.getKey())) {
+                    for (Long msgSeq : sentMsgEntry.getValue()) {
+                        SnakeProto.GameMessage msg = messages.get(msgSeq);
+                        byte[] buf = msg.toByteArray();
+                        DatagramPacket packet =
+                                new DatagramPacket(buf, buf.length,
+                                        sentMsgEntry.getKey().getAddress(),
+                                        sentMsgEntry.getKey().getPort());
+                        socket.send(packet);
+                        System.out.println("resend " + msgSeq);
+                    }
+                }
             }
         }
     }
@@ -77,26 +97,16 @@ public class MessageResender extends Thread {
     @Override
     public void run() {
         while (!isInterrupted()) {
-            synchronized (messagesToResend) {
-                messagesToResend.forEach((addr, msgSeqs) -> {
-                    msgSeqs.forEach(msgSeq -> {
-                        try {
-                            byte[] buf = messages.get(msgSeq).toByteArray();
-                            DatagramPacket packet =
-                                    new DatagramPacket(buf, buf.length, addr.getAddress(), addr.getPort());
-                            socket.send(packet);
-                        } catch (IOException e) {
-                            System.out.println(e.getMessage());
-                            this.interrupt();
-                        }
-                    });
-                });
-                try {
-                    sleep(pingDelay);
-                } catch (InterruptedException e) {
-                    return;
-                }
+            try {
+                resendMessages();
+                sleep(pingDelay);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                return;
             }
         }
+
+
     }
 }

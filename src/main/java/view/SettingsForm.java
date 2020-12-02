@@ -175,6 +175,6 @@ public class SettingsForm extends JFrame {
         stateDelay = new JSpinner(new SpinnerNumberModel(1000, 1, 10_000, 50));
         deadFoodProb = new JSpinner(new SpinnerNumberModel(0.1, 0, 1, 0.05));
         pingDelay = new JSpinner(new SpinnerNumberModel(100, 1, 10_000, 50));
-        nodeTimeout = new JSpinner(new SpinnerNumberModel(800, 1, 10_000, 50));
+        nodeTimeout = new JSpinner(new SpinnerNumberModel(1800, 1, 10_000, 50));
     }
 }

@@ -78,7 +78,7 @@ public class Master extends Observable implements Player {
                 gameConfig.getHeight());
 
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
-        gamePanel.setPlayerSnake(playerSnake);
+        gamePanel.setPlayer(this);
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
@@ -208,7 +208,7 @@ public class Master extends Observable implements Player {
 
     private void joinNewPlayers() {
         joinMessages.forEach((addr, gameMessage) -> {
-            if (addNewSnakeIfEnoughSpace(addr)) {
+            if ((!snakes.containsKey(addr)) && (addNewSnakeIfEnoughSpace(addr))) {
                 SnakeProto.GamePlayer.Builder gamePlayer = SnakeProto.GamePlayer.newBuilder();
                 gamePlayer.setName(gameMessage.getJoin().getName())
                         .setId(snakes.get(addr).getPlayerId())
@@ -391,6 +391,11 @@ public class Master extends Observable implements Player {
     public void stop() {
         announceThread.interrupt();
         messageResender.interrupt();
+    }
+
+    @Override
+    public void steer(SnakeProto.Direction direction) {
+        playerSnake.setNextDirection(direction);
     }
 
     @Override

@@ -2,6 +2,7 @@ package view;
 
 import model.Food;
 import model.Snake;
+import player.Player;
 import proto.SnakeProto;
 
 import javax.swing.*;
@@ -17,9 +18,9 @@ public class GamePanel extends JPanel implements Observer {
     private final Color[] colors = {Color.WHITE, Color.BLUE, Color.CYAN, Color.GREEN,
             Color.MAGENTA, Color.ORANGE, Color.PINK, Color.RED};
 
+    private Player player;
     private int gameWidth = 0;
     private int gameHeight = 0;
-    private Snake playerSnake;
     private List<Snake> snakes;
     private List<SnakeProto.GamePlayer> players;
     private Food food;
@@ -34,8 +35,8 @@ public class GamePanel extends JPanel implements Observer {
         isPlaying = playing;
     }
 
-    public void setPlayerSnake(Snake playerSnake) {
-        this.playerSnake = playerSnake;
+    public void setPlayer(Player player) {
+        this.player = player;
     }
 
     public void setSnakes(List<Snake> snakes) {
@@ -59,7 +60,7 @@ public class GamePanel extends JPanel implements Observer {
             getActionMap().put(k, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
-                    playerSnake.setNextDirection(v);
+                    player.steer(v);
                 }
             });
         });
