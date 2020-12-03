@@ -60,7 +60,7 @@ public class Game {
             socket.send(packet);
             messageResender.setMessagesToResend(host, msgSeq, gameMessage);
             messageResender.start();
-            socket.setSoTimeout(11_000);
+            socket.setSoTimeout(app.getGameConfig(hostId).getNodeTimeoutMs());
             buf = new byte[128];
             packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
@@ -77,19 +77,21 @@ public class Game {
         byte[] msg = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
         try {
             SnakeProto.GameMessage gameMsg = SnakeProto.GameMessage.parseFrom(msg);
+            SnakeProto.NodeRole role = SnakeProto.NodeRole.NORMAL;
             if (gameMsg.hasJoin()) {
                 messageResender.interrupt();
                 throw new JoinGameException("You cannot join your own game!");
             } else if (gameMsg.hasError()) {
                 messageResender.interrupt();
                 throw new JoinGameException(gameMsg.getError().getErrorMessage());
-            } else if (gameMsg.hasAck()) {
+            } else if ((gameMsg.hasRoleChange()) || (gameMsg.hasAck())) {
                 messageResender.removeMessage(host, msgSeq);
                 if (player != null) {
                     player.stop();
                 }
                 player = new Normal(gamePanel, gameMsg.getReceiverId(), gameMsg.getSenderId(),
-                        messageResender, socket, host, app.getGameConfig(hostId));
+                        messageResender, socket, host, app.getGameConfig(hostId),
+                        gameMsg.hasRoleChange() ? SnakeProto.NodeRole.DEPUTY : role);
                 player.start();
             }
         } catch (InvalidProtocolBufferException e) {

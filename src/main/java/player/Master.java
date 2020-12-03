@@ -12,11 +12,10 @@ import java.net.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-
-import static java.lang.Thread.sleep;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Master extends Observable implements Player {
-    private int masterId;
+    private final int masterId;
 
     //id увеличивается при создании нового игрока
     private int id = 0;
@@ -28,8 +27,8 @@ public class Master extends Observable implements Player {
     private Long msgSeq = 0L;
 
     private final DatagramSocket socket;
-    private Thread announceThread;
-    private MessageResender messageResender;
+    private Timer announceThread;
+    private final MessageResender messageResender;
     private final SnakeProto.GameConfig.Builder gameConfig;
     private final Map<InetSocketAddress, SnakeProto.GameMessage> steerMessages = new HashMap<>();
     private final Map<InetSocketAddress, SnakeProto.GameMessage> joinMessages = new HashMap<>();
@@ -99,9 +98,13 @@ public class Master extends Observable implements Player {
 
     public void checkSnakesCollision() {
         field = new InetSocketAddress[gameConfig.getWidth()][gameConfig.getHeight()];
+
+        //сначала выставляются головы змей
         snakes.forEach((addr, snake) -> {
             SnakeProto.GameState.Coord head = snake.getCoords().get(0);
             if (field[head.getX()][head.getY()] != null) {
+
+                //т.к. выставлены только головы, умирают обе змеи
                 snake.kill();
                 snakes.get(field[head.getX()][head.getY()]).kill();
             } else {
@@ -147,7 +150,12 @@ public class Master extends Observable implements Player {
         });
         checkSnakesCollision();
         snakes.forEach((addr, snake) -> snake.toFood(food, gameConfig.getDeadFoodProb()));
+        removeDeadSnakes();
         food.updateFood(new ArrayList<>(snakes.values()));
+    }
+
+    private void removeDeadSnakes() {
+        snakes.entrySet().removeIf(snakesSet -> !snakesSet.getValue().isAlive());
     }
 
     private boolean isEmptySquare(int x, int y) {
@@ -217,6 +225,7 @@ public class Master extends Observable implements Player {
                         .setRole(SnakeProto.NodeRole.NORMAL)
                         .setScore(0);
                 players.put(addr, gamePlayer);
+                checkDeputy();
                 try {
                     AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, masterId, players.get(addr).getId());
                 } catch (IOException e) {
@@ -224,6 +233,51 @@ public class Master extends Observable implements Player {
                 }
             }
         });
+    }
+
+    private void sendRoleChangeMessage(InetSocketAddress address) throws IOException {
+        SnakeProto.GameMessage.RoleChangeMsg.Builder roleChangeMsg = SnakeProto.GameMessage.RoleChangeMsg.newBuilder();
+        roleChangeMsg
+                .setReceiverRole(SnakeProto.NodeRole.DEPUTY)
+                .setSenderRole(SnakeProto.NodeRole.MASTER);
+
+        SnakeProto.GameMessage.Builder gameMessage = SnakeProto.GameMessage.newBuilder();
+        gameMessage.setRoleChange(roleChangeMsg.build())
+                .setMsgSeq(msgSeq)
+                .setSenderId(masterId)
+                .setReceiverId(players.get(address).getId());
+
+        SnakeProto.GameMessage message = gameMessage.build();
+        byte[] buf = message.toByteArray();
+        DatagramPacket packet =
+                new DatagramPacket(buf, buf.length, address);
+        socket.send(packet);
+        messageResender.setMessagesToResend(address, msgSeq, message);
+        incrementMessageSeq();
+    }
+
+    private void checkDeputy() {
+        AtomicBoolean noDeputy = new AtomicBoolean(true);
+        players.forEach((addr, player) -> {
+            if (player.getRole() == SnakeProto.NodeRole.DEPUTY) {
+                noDeputy.set(false);
+            }
+        });
+        if (noDeputy.get()) {
+            snakes.forEach((addr, snake) -> {
+                if ((snake.getState() != SnakeProto.GameState.Snake.SnakeState.ZOMBIE)
+                    && (snake.getPlayerId() != masterId)) {
+                    players.get(addr).setRole(SnakeProto.NodeRole.DEPUTY);
+                    try {
+                        sendRoleChangeMessage(addr);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+        }
+
     }
 
     private void addJoinMsg(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
@@ -257,12 +311,19 @@ public class Master extends Observable implements Player {
         messageResender.removeReceiver(address);
     }
 
+    private void makeZombieSnake(InetSocketAddress address) {
+        if (snakes.containsKey(address)) {
+            snakes.get(address).makeZombie();
+        }
+    }
+
     private void checkLastMessageTime() {
         Iterator<Map.Entry<InetSocketAddress, Long>> it = lastMsgTime.entrySet().iterator();
 
         while (it.hasNext()) {
             Map.Entry<InetSocketAddress, Long> lastTime = it.next();
             if (Instant.now().toEpochMilli()  - lastTime.getValue() > gameConfig.getNodeTimeoutMs()) {
+                makeZombieSnake(lastTime.getKey());
                 deletePlayer(lastTime.getKey());
                 it.remove();
             }
@@ -277,12 +338,8 @@ public class Master extends Observable implements Player {
         List<SnakeProto.GameState.Snake> snakesProto = new ArrayList<>();
         snakes.forEach((addr, snake) -> {
             SnakeProto.GameState.Snake.Builder snakeBuilder = SnakeProto.GameState.Snake.newBuilder();
-            if (snake.isAlive()) {
-                snakeBuilder.setState(SnakeProto.GameState.Snake.SnakeState.ALIVE);
-            } else {
-                snakeBuilder.setState(SnakeProto.GameState.Snake.SnakeState.ZOMBIE);
-            }
-            snakeBuilder.setPlayerId(players.get(addr).getId());
+            snakeBuilder.setState(SnakeProto.GameState.Snake.SnakeState.ALIVE);
+            snakeBuilder.setPlayerId(snake.getPlayerId());
             snake.packCoords();
             snakeBuilder.addAllPoints(snake.getPackedCoords());
             snakeBuilder.setHeadDirection(snake.getDirection());
@@ -364,13 +421,11 @@ public class Master extends Observable implements Player {
     }
 
     private void sendAnnounce() {
-        announceThread = new Thread(() -> {
-            while (!announceThread.isInterrupted()) {
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    return;
-                }
+        announceThread = new Timer();
+
+        announceThread.schedule(new TimerTask() {
+            @Override
+            public void run() {
                 byte[] buf;
                 List<SnakeProto.GamePlayer> gamePlayers = new ArrayList<>();
                 gamePlayers.add(SnakeProto.GamePlayer.newBuilder()
@@ -389,7 +444,6 @@ public class Master extends Observable implements Player {
                         .setAnnouncement(announceBuilder)
                         .setMsgSeq(1)
                         .build();
-
                 buf = gameMessage.toByteArray();
                 try {
                     DatagramPacket packet =
@@ -399,14 +453,12 @@ public class Master extends Observable implements Player {
                     e.printStackTrace();
                 }
             }
-
-        });
-        announceThread.start();
+        }, 0, 1_000);
     }
 
     @Override
     public void stop() {
-        announceThread.interrupt();
+        announceThread.cancel();
         messageResender.interrupt();
     }
 

@@ -53,10 +53,15 @@ public class Snake {
 
     public void kill() {
         this.alive = false;
+        makeZombie();
     }
 
-    void madeZombie() {
+    public void makeZombie() {
         snake.setState(SnakeProto.GameState.Snake.SnakeState.ZOMBIE);
+    }
+
+    public SnakeProto.GameState.Snake.SnakeState getState() {
+        return snake.getState();
     }
 
     public void toFood(Food food, float probability) {
