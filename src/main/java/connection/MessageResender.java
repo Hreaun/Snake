@@ -64,6 +64,12 @@ public class MessageResender extends Thread {
         }
     }
 
+    public void removeReceiver(InetSocketAddress address) {
+        synchronized (messagesToResend) {
+            messagesToResend.remove(address);
+        }
+    }
+
     public void removeMessage(InetSocketAddress addr, Long msgSeq) {
         synchronized (messagesToResend) {
             if (messagesToResend.containsKey(addr)) {

@@ -252,6 +252,23 @@ public class Master extends Observable implements Player {
         //смена роли NORMAL -> VIEWER
     }
 
+    private void deletePlayer(InetSocketAddress address) {
+        players.remove(address);
+        messageResender.removeReceiver(address);
+    }
+
+    private void checkLastMessageTime() {
+        Iterator<Map.Entry<InetSocketAddress, Long>> it = lastMsgTime.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry<InetSocketAddress, Long> lastTime = it.next();
+            if (Instant.now().toEpochMilli()  - lastTime.getValue() > gameConfig.getNodeTimeoutMs()) {
+                deletePlayer(lastTime.getKey());
+                it.remove();
+            }
+        }
+    }
+
     private void sendAck(InetSocketAddress socketAddress, Long msgSeq) throws IOException {
         AckSender.sendAck(socketAddress, msgSeq, socket, masterId, players.get(socketAddress).getId());
     }
@@ -410,6 +427,7 @@ public class Master extends Observable implements Player {
                 sendStateMessages(stateMessage);
                 incrementStateOrder();
                 recvMessages();
+                checkLastMessageTime();
                 //role change message
                 updateState();
                 joinNewPlayers();
