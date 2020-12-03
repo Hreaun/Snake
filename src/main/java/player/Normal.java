@@ -15,7 +15,9 @@ public class Normal extends Observable implements Player{
     private int currentStateOrder = 0;
     private Long msgSeq = 1L;
     private final DatagramSocket socket;
-    private final int id;
+    private final int playerId;
+    private int masterId;
+
     private final MessageResender messageResender;
     private Snake playerSnake;
     private InetSocketAddress masterAddress;
@@ -24,13 +26,15 @@ public class Normal extends Observable implements Player{
     private SnakeProto.GameMessage state;
 
 
-    public Normal(GamePanel gamePanel, int id,
+    public Normal(GamePanel gamePanel, int playerId,
+                  int masterId,
                   MessageResender messageResender,
                   DatagramSocket socket,
                   InetSocketAddress masterAddress,
                   SnakeProto.GameConfig gameConfig) {
         this.gamePanel = gamePanel;
-        this.id = id;
+        this.playerId = playerId;
+        this.masterId = masterId;
         this.messageResender = messageResender;
         this.socket = socket;
         this.masterAddress = masterAddress;
@@ -43,7 +47,7 @@ public class Normal extends Observable implements Player{
 
     private void initGamePanel() {
         state.getState().getState().getSnakesList().forEach(snake -> {
-            if (snake.getPlayerId() == id) {
+            if (snake.getPlayerId() == playerId) {
                 playerSnake = new Snake(SnakeProto.GameState.Snake.newBuilder(snake), gameConfig.getWidth(),
                         gameConfig.getHeight());
                 playerSnake.setNextDirection(snake.getHeadDirection());
@@ -98,7 +102,7 @@ public class Normal extends Observable implements Player{
     }
 
     private void sendAck(InetSocketAddress socketAddress, Long msgSeq) throws IOException {
-        AckSender.sendAck(socketAddress, msgSeq, socket);
+        AckSender.sendAck(socketAddress, msgSeq, socket, playerId, masterId);
     }
 
     private void updateAcks(InetSocketAddress socketAddress, Long msgSeq) {

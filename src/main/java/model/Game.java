@@ -84,12 +84,12 @@ public class Game {
                 messageResender.interrupt();
                 throw new JoinGameException(gameMsg.getError().getErrorMessage());
             } else if (gameMsg.hasAck()) {
-                int id = gameMsg.getReceiverId();
                 messageResender.removeMessage(host, msgSeq);
                 if (player != null) {
                     player.stop();
                 }
-                player = new Normal(gamePanel, id, messageResender, socket, host, app.getGameConfig(hostId));
+                player = new Normal(gamePanel, gameMsg.getReceiverId(), gameMsg.getSenderId(),
+                        messageResender, socket, host, app.getGameConfig(hostId));
                 player.start();
             }
         } catch (InvalidProtocolBufferException e) {

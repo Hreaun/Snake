@@ -8,24 +8,14 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 
 public class AckSender {
-    public static void sendAck(InetSocketAddress socketAddress, Long msgSeq, DatagramSocket socket) throws IOException {
-        SnakeProto.GameMessage.AckMsg ackMsg = SnakeProto.GameMessage.AckMsg.newBuilder().build();
-        SnakeProto.GameMessage gameMessage = SnakeProto.GameMessage.newBuilder()
-                .setAck(ackMsg)
-                .setMsgSeq(msgSeq)
-                .build();
-        byte[] buf = gameMessage.toByteArray();
-        DatagramPacket packet =
-                new DatagramPacket(buf, buf.length, socketAddress.getAddress(), socketAddress.getPort());
-        socket.send(packet);
-    }
-
     public static void sendAck(InetSocketAddress socketAddress, Long msgSeq,
-                               DatagramSocket socket, int receiverId) throws IOException {
+                               DatagramSocket socket, int senderId,
+                               int receiverId) throws IOException {
         SnakeProto.GameMessage.AckMsg ackMsg = SnakeProto.GameMessage.AckMsg.newBuilder().build();
         SnakeProto.GameMessage gameMessage = SnakeProto.GameMessage.newBuilder()
                 .setAck(ackMsg)
                 .setMsgSeq(msgSeq)
+                .setSenderId(senderId)
                 .setReceiverId(receiverId)
                 .build();
         byte[] buf = gameMessage.toByteArray();

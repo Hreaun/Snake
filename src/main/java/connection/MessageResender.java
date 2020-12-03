@@ -56,7 +56,7 @@ public class MessageResender extends Thread {
                         }
                     }
                 }
-                // удаление подтвержденного всеми соседями сообщения
+                // удаление подтвержденного всеми сообщения
                 if (counter == 0) {
                     messagesIter.remove();
                 }
@@ -67,7 +67,6 @@ public class MessageResender extends Thread {
     public void removeMessage(InetSocketAddress addr, Long msgSeq) {
         synchronized (messagesToResend) {
             if (messagesToResend.containsKey(addr)) {
-                System.out.println("remove " + msgSeq);
                 messagesToResend.get(addr).remove(msgSeq);
                 checkMessages();
             }
@@ -87,7 +86,6 @@ public class MessageResender extends Thread {
                                         sentMsgEntry.getKey().getAddress(),
                                         sentMsgEntry.getKey().getPort());
                         socket.send(packet);
-                        System.out.println("resend " + msgSeq);
                     }
                 }
             }

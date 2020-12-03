@@ -218,7 +218,7 @@ public class Master extends Observable implements Player {
                         .setScore(0);
                 players.put(addr, gamePlayer);
                 try {
-                    AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, players.get(addr).getId());
+                    AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, masterId, players.get(addr).getId());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -253,7 +253,7 @@ public class Master extends Observable implements Player {
     }
 
     private void sendAck(InetSocketAddress socketAddress, Long msgSeq) throws IOException {
-        AckSender.sendAck(socketAddress, msgSeq, socket);
+        AckSender.sendAck(socketAddress, msgSeq, socket, masterId, players.get(socketAddress).getId());
     }
 
     private SnakeProto.GameMessage makeStateMessage() {
