@@ -1,6 +1,7 @@
 package view;
 
 import model.Game;
+import proto.SnakeProto;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -28,7 +29,7 @@ public class MainForm extends JFrame {
         this.setContentPane(mainPanel);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         gamePanel.setBackground(Color.GRAY);
-        exitButton.addActionListener(actionEvent -> System.out.println("exit"));
+        exitButton.addActionListener(actionEvent -> game.changeToViewer());
         playersList.setListData(new String[]{"Jane Doe", "John Smith", "Kathy Green"});
         playersList.setVisibleRowCount(-1);
         this.pack();
@@ -58,6 +59,14 @@ public class MainForm extends JFrame {
             }
         }
         gamesTableModel.insertRow(0, new Object[]{name, number, size, food, enterButton});
+    }
+
+    public void deleteGame(Integer gameId) {
+        for (int i = 0; i < gamesTableModel.getRowCount(); i++) {
+            if (gamesTableModel.getValueAt(i, 1).equals(gameId)) {
+                gamesTableModel.removeRow(i);
+            }
+        }
     }
 
     public GamePanel getGamePanel() {
@@ -135,14 +144,12 @@ public class MainForm extends JFrame {
                 if (gamesTable.getSelectedColumn() == 4) {
                     settingsForm.saveSettings();
                     int hostId = (Integer) gamesTable.getValueAt(gamesTable.getSelectedRow(), 1);
-                    try {
-                        game.joinGame(getGamePanel(), settingsForm.getPlayerName(), hostId);
-                    } catch (JoinGameException e) {
-                        JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
-                                "Game connection error",
-                                JOptionPane.ERROR_MESSAGE);
-                    }
-                } // иначе VIEWER
+                    game.joinGame(getGamePanel(), settingsForm.getPlayerName(), hostId, SnakeProto.NodeRole.NORMAL);
+                } else {
+                    settingsForm.saveSettings();
+                    int hostId = (Integer) gamesTable.getValueAt(gamesTable.getSelectedRow(), 1);
+                    game.joinGame(getGamePanel(), settingsForm.getPlayerName(), hostId, SnakeProto.NodeRole.VIEWER);
+                }
             }
 
             @Override

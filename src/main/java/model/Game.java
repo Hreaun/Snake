@@ -18,11 +18,21 @@ import java.util.Arrays;
 public class Game {
     private DatagramSocket socket;
     private Player player;
+    private SnakeProto.NodeRole role = SnakeProto.NodeRole.NORMAL;
     private final App app;
 
     public Game(App app) {
         this.app = app;
         try {
+            socket = new DatagramSocket();
+        } catch (SocketException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void makeNewSocket() {
+        try {
+            socket.close();
             socket = new DatagramSocket();
         } catch (SocketException e) {
             System.out.println(e.getMessage());
@@ -41,33 +51,43 @@ public class Game {
         return frame;
     }
 
-    public void joinGame(GamePanel gamePanel, String name, int hostId) throws JoinGameException {
+    private void connectToGame(GamePanel gamePanel, String name, InetSocketAddress hostAddr, SnakeProto.NodeRole role,
+                               SnakeProto.GameConfig gameConfig) throws JoinGameException {
+        if (this.role == SnakeProto.NodeRole.MASTER) {
+            throw new JoinGameException("You cannot join another game while you are MASTER");
+        } else if (player != null) {
+            player.stop();
+            player.changeToViewer();
+            makeNewSocket();
+        }
         long msgSeq = 0;
-        InetSocketAddress host = app.getHost(hostId);
         SnakeProto.GameMessage.JoinMsg.Builder joinMsg = SnakeProto.GameMessage.JoinMsg.newBuilder();
         joinMsg.setName(name);
+        if (role == SnakeProto.NodeRole.VIEWER) {
+            joinMsg.setOnlyView(true);
+        }
         SnakeProto.GameMessage gameMessage = SnakeProto.GameMessage.newBuilder().setJoin(joinMsg)
                 .setMsgSeq(msgSeq)
                 .build();
         byte[] buf = gameMessage.toByteArray();
         DatagramPacket packet =
-                new DatagramPacket(buf, buf.length, host.getAddress(), host.getPort());
+                new DatagramPacket(buf, buf.length, hostAddr.getAddress(), hostAddr.getPort());
 
         JFrame connectionFrame = showConnectionPanel();
         MessageResender messageResender = new MessageResender(socket,
-                app.getGameConfig(hostId).getPingDelayMs());
+                gameConfig.getPingDelayMs());
         try {
             socket.send(packet);
-            messageResender.setMessagesToResend(host, msgSeq, gameMessage);
+            messageResender.setMessagesToResend(hostAddr, msgSeq, gameMessage);
             messageResender.start();
-            socket.setSoTimeout(app.getGameConfig(hostId).getNodeTimeoutMs());
+            socket.setSoTimeout(gameConfig.getNodeTimeoutMs());
             buf = new byte[128];
             packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
         } catch (SocketTimeoutException e) {
             messageResender.interrupt();
-            throw new JoinGameException("Didn't get an answer from " + host.getAddress().toString() + " "
-                    + host.getPort());
+            throw new JoinGameException("Didn't get an answer from " + hostAddr.getAddress().toString() + " "
+                    + hostAddr.getPort());
         } catch (IOException e) {
             messageResender.interrupt();
             e.printStackTrace();
@@ -77,22 +97,19 @@ public class Game {
         byte[] msg = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
         try {
             SnakeProto.GameMessage gameMsg = SnakeProto.GameMessage.parseFrom(msg);
-            SnakeProto.NodeRole role = SnakeProto.NodeRole.NORMAL;
-            if (gameMsg.hasJoin()) {
-                messageResender.interrupt();
-                throw new JoinGameException("You cannot join your own game!");
-            } else if (gameMsg.hasError()) {
+            if (gameMsg.hasError()) {
                 messageResender.interrupt();
                 throw new JoinGameException(gameMsg.getError().getErrorMessage());
             } else if ((gameMsg.hasRoleChange()) || (gameMsg.hasAck())) {
-                messageResender.removeMessage(host, msgSeq);
-                if (player != null) {
-                    player.stop();
-                }
+                messageResender.removeMessage(hostAddr, msgSeq);
                 player = new Normal(this, gamePanel, gameMsg.getReceiverId(), gameMsg.getSenderId(),
-                        messageResender, socket, host, app.getGameConfig(hostId),
+                        messageResender, socket, hostAddr, gameConfig,
                         gameMsg.hasRoleChange() ? SnakeProto.NodeRole.DEPUTY : role);
+                this.role = role;
                 player.start();
+            } else {
+                messageResender.interrupt();
+                throw new JoinGameException("Something went wrong...");
             }
         } catch (InvalidProtocolBufferException e) {
             messageResender.interrupt();
@@ -100,21 +117,53 @@ public class Game {
         }
     }
 
+    public void joinGame(GamePanel gamePanel, String name, int hostId, SnakeProto.NodeRole role) {
+        try {
+            connectToGame(gamePanel, name, app.getHost(hostId), role, app.getGameConfig(hostId));
+        } catch (JoinGameException e) {
+            JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
+                    "Game connection error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void joinGame(GamePanel gamePanel, String name, InetSocketAddress hostAddr, SnakeProto.NodeRole role,
+                         SnakeProto.GameConfig gameConfig) {
+        try {
+            connectToGame(gamePanel, name, hostAddr, role, gameConfig);
+        } catch (JoinGameException e) {
+            JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
+                    "Game connection error",
+                    JOptionPane.ERROR_MESSAGE);
+
+        }
+    }
+
     public void changeDeputyToMaster(SnakeProto.GameMessage state, int masterId, GamePanel gamePanel,
                                      SnakeProto.GameConfig settings,
                                      DatagramSocket socket, MessageResender messageResender) {
-        player = new Master(state, masterId, gamePanel,
+        player = new Master(this, state, masterId, gamePanel,
                 SnakeProto.GameConfig.newBuilder(settings), socket, messageResender);
+        this.role = SnakeProto.NodeRole.MASTER;
         player.start();
+    }
+
+    public void changeToViewer() {
+        if (player != null) {
+            this.role = SnakeProto.NodeRole.VIEWER;
+            player.changeToViewer();
+        }
     }
 
 
     public void startNewGame(GamePanel gamePanel, SnakeProto.GameConfig.Builder settings, String name) {
         if (player != null) {
             player.stop();
+            makeNewSocket();
         }
-        player = new Master(gamePanel, settings, name, socket,
+        player = new Master(this, gamePanel, settings, name, socket,
                 new MessageResender(socket, settings.getPingDelayMs()));
+        this.role = SnakeProto.NodeRole.MASTER;
         player.start();
     }
 }

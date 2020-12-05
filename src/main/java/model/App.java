@@ -38,6 +38,17 @@ public class App {
                 messageParser.getSize(), messageParser.getFood());
     }
 
+    public void deleteGame(InetSocketAddress addr) {
+        int gameId = gamesMap
+                .entrySet()
+                .stream()
+                .filter(entry -> addr.equals(entry.getValue()))
+                .map(Map.Entry::getKey).findFirst().get();
+        gamesMap.remove(gameId);
+        gameConfigMap.remove(gameId);
+        mainForm.deleteGame(gameId);
+    }
+
     public InetSocketAddress getHost(int hostId) {
         return gamesMap.get(hostId);
     }
