@@ -188,7 +188,6 @@ public class Normal extends Observable implements Player {
     public void start() {
         Timer timer = new Timer();
         do {
-            System.out.println("debil");
             recvMessages();
         } while (!initGamePanel());
         updateState();

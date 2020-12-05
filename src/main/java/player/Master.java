@@ -150,8 +150,22 @@ public class Master extends Observable implements Player {
         });
         checkSnakesCollision();
         snakes.forEach((addr, snake) -> snake.toFood(food, gameConfig.getDeadFoodProb()));
+        changeDeadSnakePlayerRole();
         removeDeadSnakes();
         food.updateFood(new ArrayList<>(snakes.values()));
+    }
+
+    private void changeDeadSnakePlayerRole() {
+        snakes.forEach((addr, snake) -> {
+            if ((!snake.isAlive()) && (snake.getState() != SnakeProto.GameState.Snake.SnakeState.ZOMBIE)) {
+                players.get(addr).setRole(SnakeProto.NodeRole.VIEWER);
+                try {
+                    sendRoleChangeMessage(addr, SnakeProto.NodeRole.VIEWER);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void removeDeadSnakes() {
@@ -235,10 +249,10 @@ public class Master extends Observable implements Player {
         });
     }
 
-    private void sendRoleChangeMessage(InetSocketAddress address) throws IOException {
+    private void sendRoleChangeMessage(InetSocketAddress address, SnakeProto.NodeRole role) throws IOException {
         SnakeProto.GameMessage.RoleChangeMsg.Builder roleChangeMsg = SnakeProto.GameMessage.RoleChangeMsg.newBuilder();
         roleChangeMsg
-                .setReceiverRole(SnakeProto.NodeRole.DEPUTY)
+                .setReceiverRole(role)
                 .setSenderRole(SnakeProto.NodeRole.MASTER);
 
         SnakeProto.GameMessage.Builder gameMessage = SnakeProto.GameMessage.newBuilder();
@@ -269,7 +283,7 @@ public class Master extends Observable implements Player {
                     && (snake.getPlayerId() != masterId)) {
                     players.get(addr).setRole(SnakeProto.NodeRole.DEPUTY);
                     try {
-                        sendRoleChangeMessage(addr);
+                        sendRoleChangeMessage(addr, SnakeProto.NodeRole.DEPUTY);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

@@ -53,7 +53,6 @@ public class Snake {
 
     public void kill() {
         this.alive = false;
-        makeZombie();
     }
 
     public void makeZombie() {
