@@ -25,6 +25,15 @@ public class Food {
         this.foods = new ArrayList<>();
     }
 
+    public Food(int foodStatic, int foodPerPlayer, int gameWidth, int gameHeight,
+                List<SnakeProto.GameState.Coord> foods){
+        this.foodStatic = foodStatic;
+        this.foodPerPlayer = foodPerPlayer;
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
+        this.foods = new ArrayList<>(foods);
+    }
+
     public Food(List<SnakeProto.GameState.Coord> foods) {
         this.foods = foods;
     }

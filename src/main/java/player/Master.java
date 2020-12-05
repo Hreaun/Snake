@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Master extends Observable implements Player {
     private final int masterId;
@@ -35,10 +36,10 @@ public class Master extends Observable implements Player {
     private final Map<InetSocketAddress, Long> lastMsgTime = new HashMap<>();
     private final Map<InetSocketAddress, SnakeProto.GamePlayer.Builder> players = new HashMap<>();
     private final Map<InetSocketAddress, Snake> snakes = new HashMap<>();
-    private final Snake playerSnake;
+    private Snake playerSnake;
     private InetSocketAddress[][] field;
-    private final Food food;
-    private final String name;
+    private Food food;
+    private String name;
     private final GamePanel gamePanel;
 
     public Master(GamePanel gamePanel,
@@ -84,6 +85,104 @@ public class Master extends Observable implements Player {
         gamePanel.setPlaying(true);
     }
 
+    public Master(SnakeProto.GameMessage state, int masterId, GamePanel gamePanel,
+                  SnakeProto.GameConfig.Builder settings,
+                  DatagramSocket socket, MessageResender messageResender) {
+        this.masterId = masterId;
+        this.gamePanel = gamePanel;
+        this.socket = socket;
+        this.gameConfig = settings.clone();
+        this.messageResender = messageResender;
+
+
+        unpackGameState(state);
+        setStateOrder(state.getState().getState().getStateOrder());
+        setMsgSeq(state.getMsgSeq());
+
+        players.forEach((addr, player) -> {
+            if (player.getId() != masterId) {
+                try {
+                    sendRoleChangeMessage(addr, player.getRole());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
+        gamePanel.setPlayer(this);
+        gamePanel.setFood(food);
+        gamePanel.setKeyBindings();
+        addObserver((Observer) gamePanel);
+        gamePanel.setPlaying(true);
+    }
+
+    private void setMsgSeq(long msgSeq) {
+        this.msgSeq = msgSeq;
+    }
+
+    private void setStateOrder(int stateOrder) {
+        this.stateOrder = stateOrder;
+    }
+
+    private void setCurrentId(int id) {
+        this.id = id;
+    }
+
+    private void unpackGameState(SnakeProto.GameMessage state) {
+        Map<Integer, SnakeProto.GamePlayer> playersMap = new HashMap<>();
+        AtomicInteger maxPlayerId = new AtomicInteger();
+        AtomicInteger oldMasterId = new AtomicInteger();
+        state.getState().getState().getPlayers().getPlayersList().forEach(player -> {
+            if (player.getId() > maxPlayerId.get()) {
+                maxPlayerId.set(player.getId());
+            }
+            if (player.getRole() != SnakeProto.NodeRole.MASTER) {
+                playersMap.put(player.getId(), player);
+            } else {
+                oldMasterId.set(player.getId());
+            }
+            if (player.getId() == masterId) {
+                players.put((InetSocketAddress) socket.getLocalSocketAddress(),
+                        SnakeProto.GamePlayer.newBuilder(player));
+                players.get(socket.getLocalSocketAddress()).setRole(SnakeProto.NodeRole.MASTER);
+                name = player.getName();
+            } else {
+                if (player.getRole() != SnakeProto.NodeRole.MASTER) {
+                    players.put(new InetSocketAddress(player.getIpAddress(), player.getPort()),
+                            SnakeProto.GamePlayer.newBuilder(player));
+                }
+            }
+        });
+        setCurrentId(maxPlayerId.get());
+
+        state.getState().getState().getSnakesList().forEach(snake -> {
+            Snake s = new Snake(SnakeProto.GameState.Snake.newBuilder(snake),
+                    gameConfig.getWidth(), gameConfig.getHeight());
+            s.unpackCoords();
+            s.setCoords(s.getUnpackedCoords());
+
+            if (snake.getPlayerId() == masterId) {
+                playerSnake = s;
+            }
+
+            if (snake.getPlayerId() == oldMasterId.get()) {
+                s.makeZombie();
+            }
+
+            if (playersMap.containsKey(snake.getPlayerId())) {
+                snakes.put(new InetSocketAddress(playersMap.get(snake.getPlayerId()).getIpAddress(),
+                        playersMap.get(snake.getPlayerId()).getPort()), s);
+            } else {
+                snakes.put(new InetSocketAddress(0), s);
+            }
+        });
+        food = new Food(gameConfig.getFoodStatic(),
+                (int) gameConfig.getFoodPerPlayer(),
+                gameConfig.getWidth(),
+                gameConfig.getHeight(), state.getState().getState().getFoodsList());
+    }
+
     private void incrementStateOrder() {
         stateOrder++;
     }
@@ -116,7 +215,9 @@ public class Master extends Observable implements Player {
             for (int i = 1; i < points.size(); i++) {
                 if (field[points.get(i).getX()][points.get(i).getY()] != null) {
                     if (addr != field[points.get(i).getX()][points.get(i).getY()]) {
-                        players.get(addr).setScore(players.get(addr).getScore() + 1);
+                        if (players.containsKey(addr)) {
+                            players.get(addr).setScore(players.get(addr).getScore() + 1);
+                        }
                     }
                     snakes.get(field[points.get(i).getX()][points.get(i).getY()]).kill();
                 } else {
@@ -157,6 +258,10 @@ public class Master extends Observable implements Player {
 
     private void changeDeadSnakePlayerRole() {
         snakes.forEach((addr, snake) -> {
+            if (snake.getPlayerId() == masterId) {
+                //TODO: MASTER -> VIEWER
+            }
+
             if ((!snake.isAlive()) && (snake.getState() != SnakeProto.GameState.Snake.SnakeState.ZOMBIE)) {
                 players.get(addr).setRole(SnakeProto.NodeRole.VIEWER);
                 try {
@@ -234,7 +339,7 @@ public class Master extends Observable implements Player {
                 SnakeProto.GamePlayer.Builder gamePlayer = SnakeProto.GamePlayer.newBuilder();
                 gamePlayer.setName(gameMessage.getJoin().getName())
                         .setId(snakes.get(addr).getPlayerId())
-                        .setIpAddress(addr.getAddress().toString())
+                        .setIpAddress(addr.getHostName())
                         .setPort(addr.getPort())
                         .setRole(SnakeProto.NodeRole.NORMAL)
                         .setScore(0);
@@ -264,7 +369,7 @@ public class Master extends Observable implements Player {
         SnakeProto.GameMessage message = gameMessage.build();
         byte[] buf = message.toByteArray();
         DatagramPacket packet =
-                new DatagramPacket(buf, buf.length, address);
+                new DatagramPacket(buf, buf.length, address.getAddress(), address.getPort());
         socket.send(packet);
         messageResender.setMessagesToResend(address, msgSeq, message);
         incrementMessageSeq();
@@ -280,7 +385,7 @@ public class Master extends Observable implements Player {
         if (noDeputy.get()) {
             snakes.forEach((addr, snake) -> {
                 if ((snake.getState() != SnakeProto.GameState.Snake.SnakeState.ZOMBIE)
-                    && (snake.getPlayerId() != masterId)) {
+                        && (snake.getPlayerId() != masterId)) {
                     players.get(addr).setRole(SnakeProto.NodeRole.DEPUTY);
                     try {
                         sendRoleChangeMessage(addr, SnakeProto.NodeRole.DEPUTY);
@@ -317,7 +422,17 @@ public class Master extends Observable implements Player {
 
     private void changePlayerRole(InetSocketAddress socketAddress, SnakeProto.GameMessage gameMsg) {
         steerMessages.remove(socketAddress);
-        //смена роли NORMAL -> VIEWER
+
+        if (snakes.containsKey(socketAddress)) {
+            snakes.get(socketAddress).makeZombie();
+        }
+
+        if (players.get(socketAddress).getRole() == SnakeProto.NodeRole.DEPUTY) {
+            players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
+            checkDeputy();
+        } else {
+            players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
+        }
     }
 
     private void deletePlayer(InetSocketAddress address) {
@@ -336,7 +451,7 @@ public class Master extends Observable implements Player {
 
         while (it.hasNext()) {
             Map.Entry<InetSocketAddress, Long> lastTime = it.next();
-            if (Instant.now().toEpochMilli()  - lastTime.getValue() > gameConfig.getNodeTimeoutMs()) {
+            if (Instant.now().toEpochMilli() - lastTime.getValue() > gameConfig.getNodeTimeoutMs()) {
                 makeZombieSnake(lastTime.getKey());
                 deletePlayer(lastTime.getKey());
                 it.remove();
@@ -479,6 +594,11 @@ public class Master extends Observable implements Player {
     @Override
     public void steer(SnakeProto.Direction direction) {
         playerSnake.setNextDirection(direction);
+    }
+
+    @Override
+    public void changeToViewer() {
+
     }
 
     @Override

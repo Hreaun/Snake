@@ -3,6 +3,7 @@ package player;
 import connection.AckSender;
 import connection.MessageResender;
 import model.Food;
+import model.Game;
 import model.Snake;
 import proto.SnakeProto;
 import view.GamePanel;
@@ -17,6 +18,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Normal extends Observable implements Player {
+    Timer timer = new Timer();
+    private Game game;
     private SnakeProto.NodeRole role;
     private int currentStateOrder = 0;
     private Long msgSeq = 1L;
@@ -33,7 +36,7 @@ public class Normal extends Observable implements Player {
     private SnakeProto.GameMessage state = null;
 
 
-    public Normal(GamePanel gamePanel, int playerId,
+    public Normal(Game game, GamePanel gamePanel, int playerId,
                   int masterId,
                   MessageResender messageResender,
                   DatagramSocket socket,
@@ -41,6 +44,7 @@ public class Normal extends Observable implements Player {
                   SnakeProto.GameConfig gameConfig,
                   SnakeProto.NodeRole role) {
         lastMessageTime = Instant.now().toEpochMilli();
+        this.game = game;
         this.gamePanel = gamePanel;
         this.playerId = playerId;
         this.masterId = masterId;
@@ -51,8 +55,8 @@ public class Normal extends Observable implements Player {
         this.role = role;
     }
 
-    private void setRole(SnakeProto.NodeRole role) {
-        this.role = role;
+    private void setRole(SnakeProto.NodeRole receiverRole) {
+        this.role = receiverRole;
     }
 
     private void incrementMsgSeq() {
@@ -156,6 +160,60 @@ public class Normal extends Observable implements Player {
         }
     }
 
+    private boolean findNewMaster() {
+        AtomicBoolean found = new AtomicBoolean(false);
+        state.getState().getState().getPlayers().getPlayersList().forEach(player -> {
+            if (player.getRole() == SnakeProto.NodeRole.DEPUTY) {
+                found.set(true);
+                masterId = player.getId();
+                masterAddress = new InetSocketAddress(player.getIpAddress(), player.getPort());
+            }
+        });
+        return found.get();
+    }
+
+    private void sendRoleChangeMessage() throws IOException {
+        SnakeProto.GameMessage.RoleChangeMsg.Builder roleChangeMsg =
+                SnakeProto.GameMessage.RoleChangeMsg.newBuilder();
+        roleChangeMsg
+                .setReceiverRole(SnakeProto.NodeRole.MASTER)
+                .setSenderRole(role);
+
+        SnakeProto.GameMessage.Builder gameMessage = SnakeProto.GameMessage.newBuilder();
+        gameMessage.setRoleChange(roleChangeMsg.build())
+                .setMsgSeq(msgSeq)
+                .setSenderId(playerId)
+                .setReceiverId(masterId);
+
+        SnakeProto.GameMessage message = gameMessage.build();
+        byte[] buf = message.toByteArray();
+        DatagramPacket packet =
+                new DatagramPacket(buf, buf.length, masterAddress.getAddress(), masterAddress.getPort());
+        socket.send(packet);
+        messageResender.setMessagesToResend(masterAddress, msgSeq, message);
+        incrementMsgSeq();
+    }
+
+    private void changeMaster() {
+        if (role == SnakeProto.NodeRole.DEPUTY) {
+            if (state != null) {
+                timer.cancel();
+                game.changeDeputyToMaster(state, playerId, gamePanel, gameConfig, socket, messageResender);
+            } else {
+                stop();
+            }
+        } else {
+            if (!findNewMaster()) {
+                stop();
+            }
+        }
+    }
+
+    private void setNewMaster(InetSocketAddress address, int masterId) {
+        this.masterId = masterId;
+        this.masterAddress = address;
+    }
+
     private void recvMessages() {
         byte[] buf = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -170,13 +228,16 @@ public class Normal extends Observable implements Player {
             } else if (gameMsg.hasState()) {
                 state = SnakeProto.GameMessage.parseFrom(msg);
             } else if (gameMsg.hasRoleChange()) {
+                if ((gameMsg.getRoleChange().hasSenderRole())
+                        && (gameMsg.getRoleChange().getSenderRole() == SnakeProto.NodeRole.MASTER)) {
+                    setNewMaster((InetSocketAddress) packet.getSocketAddress(), gameMsg.getSenderId());
+                }
                 setRole(gameMsg.getRoleChange().getReceiverRole());
             }
             sendAck((InetSocketAddress) packet.getSocketAddress(), gameMsg.getMsgSeq());
         } catch (SocketTimeoutException e) {
-            System.out.println("timeout");
             messageResender.removeReceiver(masterAddress);
-            //обработка падения мастера
+            changeMaster();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -186,7 +247,6 @@ public class Normal extends Observable implements Player {
 
     @Override
     public void start() {
-        Timer timer = new Timer();
         do {
             recvMessages();
         } while (!initGamePanel());
@@ -219,6 +279,16 @@ public class Normal extends Observable implements Player {
                 playerSnake.setNextDirection(direction);
                 sendSteerMessage();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void changeToViewer() {
+        setRole(SnakeProto.NodeRole.VIEWER);
+        try {
+            sendRoleChangeMessage();
         } catch (IOException e) {
             e.printStackTrace();
         }

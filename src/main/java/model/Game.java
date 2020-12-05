@@ -89,7 +89,7 @@ public class Game {
                 if (player != null) {
                     player.stop();
                 }
-                player = new Normal(gamePanel, gameMsg.getReceiverId(), gameMsg.getSenderId(),
+                player = new Normal(this, gamePanel, gameMsg.getReceiverId(), gameMsg.getSenderId(),
                         messageResender, socket, host, app.getGameConfig(hostId),
                         gameMsg.hasRoleChange() ? SnakeProto.NodeRole.DEPUTY : role);
                 player.start();
@@ -99,6 +99,15 @@ public class Game {
             e.printStackTrace();
         }
     }
+
+    public void changeDeputyToMaster(SnakeProto.GameMessage state, int masterId, GamePanel gamePanel,
+                                     SnakeProto.GameConfig settings,
+                                     DatagramSocket socket, MessageResender messageResender) {
+        player = new Master(state, masterId, gamePanel,
+                SnakeProto.GameConfig.newBuilder(settings), socket, messageResender);
+        player.start();
+    }
+
 
     public void startNewGame(GamePanel gamePanel, SnakeProto.GameConfig.Builder settings, String name) {
         if (player != null) {

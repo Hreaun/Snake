@@ -172,7 +172,7 @@ public class SettingsForm extends JFrame {
         height = new JSpinner(new SpinnerNumberModel(30, 10, 100, 1));
         foodStatic = new JSpinner(new SpinnerNumberModel(1, 0, 100, 1));
         foodPerPlayer = new JSpinner(new SpinnerNumberModel(1.0, 0, 100, 1));
-        stateDelay = new JSpinner(new SpinnerNumberModel(1000, 1, 10_000, 50));
+        stateDelay = new JSpinner(new SpinnerNumberModel(300, 1, 10_000, 50));
         deadFoodProb = new JSpinner(new SpinnerNumberModel(0.1, 0, 1, 0.05));
         pingDelay = new JSpinner(new SpinnerNumberModel(100, 1, 10_000, 50));
         nodeTimeout = new JSpinner(new SpinnerNumberModel(1800, 1, 10_000, 50));
