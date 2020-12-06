@@ -21,6 +21,7 @@ public class Game {
     private DatagramSocket socket;
     private Player player;
     private SnakeProto.NodeRole role = SnakeProto.NodeRole.NORMAL;
+    private boolean masterToViewer = false;
     private final App app;
 
     public Game(App app) {
@@ -65,9 +66,11 @@ public class Game {
                                SnakeProto.GameConfig gameConfig) throws JoinGameException {
         if (this.role == SnakeProto.NodeRole.MASTER) {
             throw new JoinGameException("You cannot join another game while you are MASTER");
+        } else if (masterToViewer) {
+            masterToViewer = false;
+            makeNewSocket();
         } else if (player != null) {
             player.stop();
-            player.changeToViewer();
             makeNewSocket();
         }
         long msgSeq = 0;
@@ -155,6 +158,10 @@ public class Game {
                 SnakeProto.GameConfig.newBuilder(settings), socket, messageResender);
         this.role = SnakeProto.NodeRole.MASTER;
         player.start();
+    }
+
+    public void setMasterToViewer(boolean masterToViewer) {
+        this.masterToViewer = masterToViewer;
     }
 
     public void changeToViewer() {

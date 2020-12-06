@@ -188,6 +188,9 @@ public class Normal extends Observable implements Player {
     }
 
     private boolean findNewMaster() {
+        if (state == null) {
+            return false;
+        }
         AtomicBoolean found = new AtomicBoolean(false);
         state.getState().getState().getPlayers().getPlayersList().forEach(player -> {
             if (player.getRole() == SnakeProto.NodeRole.DEPUTY) {
@@ -246,6 +249,22 @@ public class Normal extends Observable implements Player {
         game.displayGameConfig(gameConfig, getMasterName());
     }
 
+    private void unpackRoleChangeMsg(SnakeProto.GameMessage gameMsg, InetSocketAddress addr) {
+        if ((gameMsg.getRoleChange().hasReceiverRole())
+                && (gameMsg.getRoleChange().getReceiverRole() == SnakeProto.NodeRole.MASTER)) {
+            setRole(SnakeProto.NodeRole.DEPUTY);
+            changeMaster();
+        } else if ((gameMsg.getRoleChange().hasSenderRole())
+                && (gameMsg.getRoleChange().getSenderRole() == SnakeProto.NodeRole.MASTER)
+                && (gameMsg.getSenderId() != masterId)) {
+            messageResender.removeReceiver(masterAddress);
+            setNewMaster(addr, gameMsg.getSenderId());
+            changeMaster();
+        } else {
+            setRole(gameMsg.getRoleChange().getReceiverRole());
+        }
+    }
+
     private void recvMessages() {
         byte[] buf = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -260,18 +279,7 @@ public class Normal extends Observable implements Player {
             } else if (gameMsg.hasState()) {
                 state = SnakeProto.GameMessage.parseFrom(msg);
             } else if (gameMsg.hasRoleChange()) {
-                if ((gameMsg.getRoleChange().hasReceiverRole())
-                        && gameMsg.getRoleChange().getReceiverRole() == SnakeProto.NodeRole.MASTER) {
-                    changeMaster();
-                } else if ((gameMsg.getRoleChange().hasSenderRole())
-                        && (gameMsg.getRoleChange().getSenderRole() == SnakeProto.NodeRole.MASTER)
-                        && (gameMsg.getRoleChange().getReceiverRole() != SnakeProto.NodeRole.DEPUTY)) {
-                    messageResender.removeReceiver(masterAddress);
-                    setNewMaster((InetSocketAddress) packet.getSocketAddress(), gameMsg.getSenderId());
-                    changeMaster();
-                } else {
-                    setRole(gameMsg.getRoleChange().getReceiverRole());
-                }
+                unpackRoleChangeMsg(gameMsg, (InetSocketAddress) packet.getSocketAddress());
             }
             sendAck((InetSocketAddress) packet.getSocketAddress(), gameMsg.getMsgSeq());
         } catch (SocketException ignored) {
@@ -306,7 +314,6 @@ public class Normal extends Observable implements Player {
     @Override
     public void stop() {
         timer.cancel();
-        changeToViewer();
         messageResender.interrupt();
         try {
             messageResender.join();

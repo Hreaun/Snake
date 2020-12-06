@@ -13,6 +13,9 @@ import java.net.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,7 +32,8 @@ public class Master extends Observable implements Player {
     //увеличивается с каждой отправкой уникального GameMessage
     private Long msgSeq = 0L;
 
-    Timer timer = new Timer();
+    ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+    //Timer timer = new Timer();
     private final Game game;
     private final DatagramSocket socket;
     private Timer announceThread;
@@ -171,15 +175,14 @@ public class Master extends Observable implements Player {
             s.unpackCoords();
             s.setCoords(s.getUnpackedCoords());
 
-            if (snake.getPlayerId() == masterId) {
-                playerSnake = s;
-            }
-
             if (snake.getPlayerId() == oldMasterId.get()) {
                 s.makeZombie();
             }
 
-            if (playersMap.containsKey(snake.getPlayerId())) {
+            if (snake.getPlayerId() == masterId) {
+                snakes.put((InetSocketAddress) socket.getLocalSocketAddress(), s);
+                playerSnake = s;
+            } else if (playersMap.containsKey(snake.getPlayerId())) {
                 snakes.put(new InetSocketAddress(playersMap.get(snake.getPlayerId()).getIpAddress(),
                         playersMap.get(snake.getPlayerId()).getPort()), s);
             } else {
@@ -280,7 +283,7 @@ public class Master extends Observable implements Player {
     private void changeDeadSnakePlayerRole() {
         snakes.forEach((addr, snake) -> {
             if ((!snake.isAlive()) && (snake.getPlayerId() == masterId)) {
-                changeToViewer();
+                game.changeToViewer();
             } else if ((!snake.isAlive())
                     && (players.containsKey(addr))) {
                 players.get(addr).setRole(SnakeProto.NodeRole.VIEWER);
@@ -463,13 +466,13 @@ public class Master extends Observable implements Player {
             snakes.get(socketAddress).makeZombie();
         }
 
-
-        if ((players.containsKey(socketAddress))
-                && (players.get(socketAddress).getRole() == SnakeProto.NodeRole.DEPUTY)) {
-            players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
-            checkDeputy();
-        } else {
-            players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
+        if ((players.containsKey(socketAddress))) {
+            if (players.get(socketAddress).getRole() == SnakeProto.NodeRole.DEPUTY) {
+                players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
+                checkDeputy();
+            } else {
+                players.get(socketAddress).setRole(gameMsg.getRoleChange().getSenderRole());
+            }
         }
     }
 
@@ -634,15 +637,18 @@ public class Master extends Observable implements Player {
 
     @Override
     public void stop() {
-        sendRoleChangeToDeputy();
-        announceThread.cancel();
-        messageResender.interrupt();
+        timer.shutdown();
         try {
+            timer.awaitTermination(gameConfig.getStateDelayMs() * 2, TimeUnit.MILLISECONDS);
+            if (players.size() > 1) {
+                sendRoleChangeToDeputy();
+            }
+            announceThread.cancel();
+            messageResender.interrupt();
             messageResender.join();
         } catch (InterruptedException e) {
             game.displayErrorAndStopGame(e);
         }
-        timer.cancel();
     }
 
     @Override
@@ -679,28 +685,29 @@ public class Master extends Observable implements Player {
         if (players.size() == 1) {
             return;
         }
-        sendRoleChangeToDeputy();
-        game.joinGame(gamePanel, name, getDeputyAddress(), SnakeProto.NodeRole.VIEWER, gameConfig.build());
+        InetSocketAddress deputyAddr = getDeputyAddress();
+        if (deputyAddr == null) {
+            return;
+        }
+        game.setMasterToViewer(true);
+        game.joinGame(gamePanel, name, deputyAddr, SnakeProto.NodeRole.VIEWER, gameConfig.build());
     }
 
     @Override
     public void start() {
         game.displayGameConfig(gameConfig.build(), name);
         sendAnnounce();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                SnakeProto.GameMessage stateMessage = makeStateMessage();
-                updatePanelState(stateMessage.getState().getState());
-                sendStateMessages(stateMessage);
-                incrementStateOrder();
-                recvMessages();
-                checkLastMessageTime();
-                updateState();
-                joinNewPlayers();
-                setChanged();
-                notifyObservers();
-            }
-        }, 0, gameConfig.getStateDelayMs());
+        timer.scheduleAtFixedRate(() -> {
+            SnakeProto.GameMessage stateMessage = makeStateMessage();
+            updatePanelState(stateMessage.getState().getState());
+            sendStateMessages(stateMessage);
+            incrementStateOrder();
+            recvMessages();
+            checkLastMessageTime();
+            updateState();
+            joinNewPlayers();
+            setChanged();
+            notifyObservers();
+        }, 0, gameConfig.getStateDelayMs(), TimeUnit.MILLISECONDS);
     }
 }
