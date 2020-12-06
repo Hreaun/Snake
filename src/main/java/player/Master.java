@@ -30,7 +30,7 @@ public class Master extends Observable implements Player {
     private Long msgSeq = 0L;
 
     Timer timer = new Timer();
-    private Game game;
+    private final Game game;
     private final DatagramSocket socket;
     private Timer announceThread;
     private final MessageResender messageResender;
@@ -84,6 +84,7 @@ public class Master extends Observable implements Player {
 
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
         gamePanel.setPlayer(this);
+        gamePanel.setPlayerId(masterId);
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
@@ -117,6 +118,7 @@ public class Master extends Observable implements Player {
 
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
         gamePanel.setPlayer(this);
+        gamePanel.setPlayerId(masterId);
         gamePanel.setFood(food);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
@@ -247,6 +249,15 @@ public class Master extends Observable implements Player {
         gamePanel.setFood(food);
         gamePanel.setPlayers(state.getPlayers().getPlayersList());
         gamePanel.setSnakes(sList);
+        game.displayScore(getPlayerScoreMap(state), masterId);
+    }
+
+    private Map<SnakeProto.GamePlayer, Integer> getPlayerScoreMap(SnakeProto.GameState state) {
+        Map<SnakeProto.GamePlayer, Integer> playerScoreMap = new HashMap<>();
+        state.getPlayers().getPlayersList().forEach(player -> {
+            playerScoreMap.put(player, player.getScore());
+        });
+        return playerScoreMap;
     }
 
     private void updateState() {
@@ -255,6 +266,9 @@ public class Master extends Observable implements Player {
                 snake.setNextDirection(steerMessages.get(addr).getSteer().getDirection());
             }
             snake.moveForward(food);
+            if ((snake.ateFood()) && (players.containsKey(addr))) {
+                players.get(addr).setScore(players.get(addr).getScore() + 1);
+            }
         });
         checkSnakesCollision();
         snakes.forEach((addr, snake) -> snake.toFood(food, gameConfig.getDeadFoodProb()));
@@ -656,6 +670,7 @@ public class Master extends Observable implements Player {
 
     @Override
     public void start() {
+        game.displayGameConfig(gameConfig.build(), name);
         sendAnnounce();
         timer.schedule(new TimerTask() {
             @Override

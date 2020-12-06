@@ -8,6 +8,12 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class MainForm extends JFrame {
     private JPanel mainPanel;
@@ -30,7 +36,6 @@ public class MainForm extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         gamePanel.setBackground(Color.GRAY);
         exitButton.addActionListener(actionEvent -> game.changeToViewer());
-        playersList.setListData(new String[]{"Jane Doe", "John Smith", "Kathy Green"});
         playersList.setVisibleRowCount(-1);
         this.pack();
         this.settingsForm = settingsForm;
@@ -67,6 +72,49 @@ public class MainForm extends JFrame {
                 gamesTableModel.removeRow(i);
             }
         }
+    }
+
+    public void displayGameConfig(SnakeProto.GameConfig gameConfig, String hostName) {
+        settingsList.setListData(new String[]
+                {
+                        "Host: " + hostName,
+                        "Size: " + gameConfig.getWidth() + "x" + gameConfig.getHeight(),
+                        "Food: " + gameConfig.getFoodStatic() + "+" + gameConfig.getFoodPerPlayer() + "x"
+                });
+    }
+
+    public void displayScore(Map<SnakeProto.GamePlayer, Integer> players, int playerId) {
+        Color[] colors = getGamePanel().getColors();
+        colors[0] = Color.BLACK;
+
+        Stream<Map.Entry<SnakeProto.GamePlayer, Integer>> sorted =
+                players.entrySet().stream()
+                        .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()));
+
+        List<String> scoreList = new ArrayList<>();
+        Color[] snakeColor = new Color[players.size()];
+        AtomicInteger place = new AtomicInteger();
+        sorted.forEach((playerEntry) -> {
+            snakeColor[place.get()] = colors[playerEntry.getKey().getId() % colors.length];
+            place.getAndIncrement();
+            scoreList.add(String.format("%-45s %s",
+                    (playerEntry.getKey().getId() == playerId ? "(You) " : "") + playerEntry.getKey().getName(),
+                    playerEntry.getKey().getScore()));
+        });
+        setPlayersListColors(snakeColor);
+        playersList.setListData(scoreList.toArray(String[]::new));
+    }
+
+    private void setPlayersListColors(Color[] snakeColor) {
+        playersList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                setForeground(snakeColor[index]);
+                return c;
+            }
+        });
     }
 
     public GamePanel getGamePanel() {
@@ -122,7 +170,6 @@ public class MainForm extends JFrame {
     }
 
     private void createUIComponents() {
-        // TODO: place custom component creation code here
         gamePanel = new GamePanel();
 
         gamesTableModel =

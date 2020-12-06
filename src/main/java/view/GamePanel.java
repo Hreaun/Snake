@@ -19,6 +19,7 @@ public class GamePanel extends JPanel implements Observer {
             Color.MAGENTA, Color.ORANGE, Color.PINK, Color.RED};
 
     private Player player;
+    private int playerId;
     private int gameWidth = 0;
     private int gameHeight = 0;
     private List<Snake> snakes;
@@ -31,12 +32,20 @@ public class GamePanel extends JPanel implements Observer {
         this.gameHeight = gameHeight;
     }
 
+    public Color[] getColors() {
+        return colors;
+    }
+
     public void setPlaying(boolean playing) {
         isPlaying = playing;
     }
 
     public void setPlayer(Player player) {
         this.player = player;
+    }
+
+    public void setPlayerId(int playerId) {
+        this.playerId = playerId;
     }
 
     public void setSnakes(List<Snake> snakes) {

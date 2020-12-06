@@ -221,6 +221,10 @@ public class Snake {
         this.unpackedCoords = unpackedCoords;
     }
 
+    public boolean ateFood() {
+        return ateFood;
+    }
+
     public void moveForward(Food food) {
         ateFood = false;
         List<SnakeProto.GameState.Coord> oldCoords = snake.getPointsList();

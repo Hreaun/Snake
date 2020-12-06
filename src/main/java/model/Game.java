@@ -14,6 +14,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
+import java.util.Map;
 
 public class Game {
     private DatagramSocket socket;
@@ -30,7 +31,15 @@ public class Game {
         }
     }
 
-    public void makeNewSocket() {
+    public void displayGameConfig(SnakeProto.GameConfig gameConfig, String hostName) {
+        app.displayGameConfig(gameConfig, hostName);
+    }
+
+    public void displayScore(Map<SnakeProto.GamePlayer, Integer> players, int playerId) {
+        app.displayScore(players, playerId);
+    }
+
+    private void makeNewSocket() {
         try {
             socket.close();
             socket = new DatagramSocket();

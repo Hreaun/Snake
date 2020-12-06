@@ -49,6 +49,14 @@ public class App {
         mainForm.deleteGame(gameId);
     }
 
+    public void displayGameConfig(SnakeProto.GameConfig gameConfig, String hostName) {
+        mainForm.displayGameConfig(gameConfig, hostName);
+    }
+
+    public void displayScore(Map<SnakeProto.GamePlayer, Integer> players, int playerId) {
+        mainForm.displayScore(players, playerId);
+    }
+
     public InetSocketAddress getHost(int hostId) {
         return gamesMap.get(hostId);
     }

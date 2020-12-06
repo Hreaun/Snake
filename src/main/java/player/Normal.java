@@ -13,6 +13,7 @@ import java.net.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Normal extends Observable implements Player {
     Timer timer = new Timer();
@@ -71,12 +72,26 @@ public class Normal extends Observable implements Player {
                 playerSnake.setNextDirection(snake.getHeadDirection());
             }
         });
+
+
+        updateGameConfigDisplay();
         gamePanel.setGameSize(gameConfig.getWidth(), gameConfig.getHeight());
         gamePanel.setPlayer(this);
+        gamePanel.setPlayerId(playerId);
         gamePanel.setKeyBindings();
         addObserver((Observer) gamePanel);
         gamePanel.setPlaying(true);
         return true;
+    }
+
+    private String getMasterName() {
+        AtomicReference<String> masterName = new AtomicReference<>("");
+        state.getState().getState().getPlayers().getPlayersList().forEach(player -> {
+            if (player.getRole() == SnakeProto.NodeRole.MASTER) {
+                masterName.set(player.getName());
+            }
+        });
+        return masterName.get();
     }
 
     private SnakeProto.GameMessage makeSteerMsg() {
@@ -131,6 +146,15 @@ public class Normal extends Observable implements Player {
         gamePanel.setFood(food);
         gamePanel.setPlayers(state.getState().getState().getPlayers().getPlayersList());
         gamePanel.setSnakes(snakes);
+        game.displayScore(getPlayerScoreMap(state.getState().getState()), playerId);
+    }
+
+    private Map<SnakeProto.GamePlayer, Integer> getPlayerScoreMap(SnakeProto.GameState state) {
+        Map<SnakeProto.GamePlayer, Integer> playerScoreMap = new HashMap<>();
+        state.getPlayers().getPlayersList().forEach(player -> {
+            playerScoreMap.put(player, player.getScore());
+        });
+        return playerScoreMap;
     }
 
     private void sendAck(InetSocketAddress socketAddress, Long msgSeq) throws IOException {
@@ -213,8 +237,13 @@ public class Normal extends Observable implements Player {
     }
 
     private void setNewMaster(InetSocketAddress address, int masterId) {
+        updateGameConfigDisplay();
         this.masterId = masterId;
         this.masterAddress = address;
+    }
+
+    private void updateGameConfigDisplay() {
+        game.displayGameConfig(gameConfig, getMasterName());
     }
 
     private void recvMessages() {
@@ -235,8 +264,11 @@ public class Normal extends Observable implements Player {
                         && gameMsg.getRoleChange().getReceiverRole() == SnakeProto.NodeRole.MASTER) {
                     changeMaster();
                 } else if ((gameMsg.getRoleChange().hasSenderRole())
-                        && (gameMsg.getRoleChange().getSenderRole() == SnakeProto.NodeRole.MASTER)) {
+                        && (gameMsg.getRoleChange().getSenderRole() == SnakeProto.NodeRole.MASTER)
+                        && (gameMsg.getRoleChange().getReceiverRole() != SnakeProto.NodeRole.DEPUTY)) {
+                    messageResender.removeReceiver(masterAddress);
                     setNewMaster((InetSocketAddress) packet.getSocketAddress(), gameMsg.getSenderId());
+                    changeMaster();
                 } else {
                     setRole(gameMsg.getRoleChange().getReceiverRole());
                 }
