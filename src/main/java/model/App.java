@@ -2,6 +2,7 @@ package model;
 
 import connection.MulticastListener;
 import proto.SnakeProto;
+import view.AppException;
 import view.MainForm;
 import view.SettingsForm;
 
@@ -15,10 +16,14 @@ public class App {
     private final Map<Integer, InetSocketAddress> gamesMap = new HashMap<>();
     private final Map<Integer, SnakeProto.GameConfig> gameConfigMap = new HashMap<>();
     private final MainForm mainForm;
+    private MulticastListener multicastListener;
     private final MessageParser messageParser = new MessageParser();
     private final SnakeProto.GameConfig.Builder gameConfig = SnakeProto.GameConfig.newBuilder();
     private final SnakeProto.GameMessage.JoinMsg.Builder playerName = SnakeProto.GameMessage.JoinMsg.newBuilder();
 
+    public void closeApp() {
+        System.exit(1);
+    }
 
     public void addGame(DatagramPacket packet) {
         int gameId;
@@ -61,6 +66,16 @@ public class App {
         return gamesMap.get(hostId);
     }
 
+    public void stopMulticastListener() throws AppException {
+        multicastListener.interrupt();
+        multicastListener.closeSocket();
+        try {
+            multicastListener.join();
+        } catch (InterruptedException e) {
+            throw new AppException(e.getMessage());
+        }
+    }
+
     public SnakeProto.GameConfig getGameConfig(int hostId) {
         return gameConfigMap.get(hostId);
     }
@@ -69,7 +84,7 @@ public class App {
         SettingsForm settingsForm = new SettingsForm();
         settingsForm.setGameConfig(gameConfig);
         settingsForm.setPlayerName(playerName);
-        MulticastListener multicastListener = new MulticastListener(this);
+        multicastListener = new MulticastListener(this);
         mainForm = new MainForm(settingsForm, new Game(this));
         multicastListener.start();
     }

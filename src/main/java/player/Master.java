@@ -111,7 +111,7 @@ public class Master extends Observable implements Player {
                 try {
                     sendRoleChangeMessage(addr, player.getRole());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             }
         });
@@ -288,7 +288,7 @@ public class Master extends Observable implements Player {
                     checkDeputy();
                     sendRoleChangeMessage(addr, SnakeProto.NodeRole.VIEWER);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             }
         });
@@ -373,7 +373,7 @@ public class Master extends Observable implements Player {
                 try {
                     AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, masterId, players.get(addr).getId());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             } else if ((!snakes.containsKey(addr)) && (addNewSnakeIfEnoughSpace(addr))) {
                 putNewPlayer(gameMessage, addr, SnakeProto.NodeRole.NORMAL, snakes.get(addr).getPlayerId());
@@ -381,7 +381,7 @@ public class Master extends Observable implements Player {
                 try {
                     AckSender.sendAck(addr, gameMessage.getMsgSeq(), socket, masterId, players.get(addr).getId());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             }
         });
@@ -426,7 +426,7 @@ public class Master extends Observable implements Player {
                     try {
                         sendRoleChangeMessage(addr, SnakeProto.NodeRole.DEPUTY);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        game.displayErrorAndStopGame(e);
                     }
                 }
             });
@@ -546,7 +546,7 @@ public class Master extends Observable implements Player {
                     socket.send(packet);
                     messageResender.setMessagesToResend(addr, msgSeq, stateMessage);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             }
         });
@@ -589,7 +589,7 @@ public class Master extends Observable implements Player {
                 return;
             } catch (SocketTimeoutException ignored) {
             } catch (IOException e) {
-                e.printStackTrace();
+                game.displayErrorAndStopGame(e);
             } finally {
                 endTime = Instant.now();
             }
@@ -626,7 +626,7 @@ public class Master extends Observable implements Player {
                             new DatagramPacket(buf, buf.length, InetAddress.getByName("239.192.0.4"), 9192);
                     socket.send(packet);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    game.displayErrorAndStopGame(e);
                 }
             }
         }, 0, 1_000);
@@ -634,8 +634,14 @@ public class Master extends Observable implements Player {
 
     @Override
     public void stop() {
+        sendRoleChangeToDeputy();
         announceThread.cancel();
         messageResender.interrupt();
+        try {
+            messageResender.join();
+        } catch (InterruptedException e) {
+            game.displayErrorAndStopGame(e);
+        }
         timer.cancel();
     }
 
@@ -644,28 +650,37 @@ public class Master extends Observable implements Player {
         playerSnake.setNextDirection(direction);
     }
 
-    @Override
-    public void changeToViewer() {
-        stop();
-        if (players.size() == 1) {
-            return;
-        }
+    private InetSocketAddress getDeputyAddress() {
         AtomicReference<InetSocketAddress> deputyAddr = new AtomicReference<>(null);
         players.forEach((addr, player) -> {
             if (player.getRole() == SnakeProto.NodeRole.DEPUTY) {
                 deputyAddr.set(addr);
             }
         });
+        return deputyAddr.get();
+    }
 
-        if (deputyAddr.get() == null) {
+    private void sendRoleChangeToDeputy() {
+        InetSocketAddress deputyAddr = getDeputyAddress();
+
+        if (deputyAddr == null) {
             return;
         }
         try {
-            sendRoleChangeMessage(deputyAddr.get(), SnakeProto.NodeRole.MASTER);
+            sendRoleChangeMessage(deputyAddr, SnakeProto.NodeRole.MASTER);
         } catch (IOException e) {
-            e.printStackTrace();
+            game.displayErrorAndStopGame(e);
         }
-        game.joinGame(gamePanel, name, deputyAddr.get(), SnakeProto.NodeRole.VIEWER, gameConfig.build());
+    }
+
+    @Override
+    public void changeToViewer() {
+        stop();
+        if (players.size() == 1) {
+            return;
+        }
+        sendRoleChangeToDeputy();
+        game.joinGame(gamePanel, name, getDeputyAddress(), SnakeProto.NodeRole.VIEWER, gameConfig.build());
     }
 
     @Override

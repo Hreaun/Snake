@@ -179,7 +179,7 @@ public class Normal extends Observable implements Player {
             } catch (SocketException e) {
                 return;
             } catch (IOException e) {
-                e.printStackTrace();
+                game.displayErrorAndStopGame(e);
             }
             messageResender.setMessagesToResend(masterAddress, msgSeq, message);
             updateLastMessageTime();
@@ -279,7 +279,7 @@ public class Normal extends Observable implements Player {
             messageResender.removeReceiver(masterAddress);
             changeMaster();
         } catch (IOException e) {
-            e.printStackTrace();
+            game.displayErrorAndStopGame(e);
         }
 
     }
@@ -308,6 +308,11 @@ public class Normal extends Observable implements Player {
         timer.cancel();
         changeToViewer();
         messageResender.interrupt();
+        try {
+            messageResender.join();
+        } catch (InterruptedException e) {
+            game.displayErrorAndStopGame(e);
+        }
     }
 
     @Override
@@ -318,7 +323,7 @@ public class Normal extends Observable implements Player {
                 sendSteerMessage();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            game.displayErrorAndStopGame(e);
         }
     }
 
@@ -328,7 +333,7 @@ public class Normal extends Observable implements Player {
         try {
             sendRoleChangeMessage();
         } catch (IOException e) {
-            e.printStackTrace();
+            game.displayErrorAndStopGame(e);
         }
     }
 }

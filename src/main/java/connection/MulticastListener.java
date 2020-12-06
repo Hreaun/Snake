@@ -45,6 +45,10 @@ public class MulticastListener extends Thread {
         }
     }
 
+    public void closeSocket() {
+        multicastSocket.close();
+    }
+
 
     @Override
     public void run() {
@@ -59,7 +63,7 @@ public class MulticastListener extends Thread {
             } catch (SocketTimeoutException e) {
                 checkLastMessageTime();
             } catch (IOException e) {
-                e.printStackTrace();
+                return;
             }
         }
     }

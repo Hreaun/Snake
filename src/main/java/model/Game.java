@@ -6,6 +6,7 @@ import player.Master;
 import player.Normal;
 import player.Player;
 import proto.SnakeProto;
+import view.AppException;
 import view.GamePanel;
 import view.JoinGameException;
 
@@ -27,7 +28,7 @@ public class Game {
         try {
             socket = new DatagramSocket();
         } catch (SocketException e) {
-            System.out.println(e.getMessage());
+            displayErrorAndStopGame(e);
         }
     }
 
@@ -44,7 +45,7 @@ public class Game {
             socket.close();
             socket = new DatagramSocket();
         } catch (SocketException e) {
-            System.out.println(e.getMessage());
+            displayErrorAndStopGame(e);
         }
     }
 
@@ -99,7 +100,7 @@ public class Game {
                     + hostAddr.getPort());
         } catch (IOException e) {
             messageResender.interrupt();
-            e.printStackTrace();
+            displayErrorAndStopGame(e);
         } finally {
             connectionFrame.dispose();
         }
@@ -122,7 +123,7 @@ public class Game {
             }
         } catch (InvalidProtocolBufferException e) {
             messageResender.interrupt();
-            e.printStackTrace();
+            displayErrorAndStopGame(e);
         }
     }
 
@@ -144,7 +145,6 @@ public class Game {
             JOptionPane.showMessageDialog(new JFrame(), e.getMessage(),
                     "Game connection error",
                     JOptionPane.ERROR_MESSAGE);
-
         }
     }
 
@@ -174,5 +174,30 @@ public class Game {
                 new MessageResender(socket, settings.getPingDelayMs()));
         this.role = SnakeProto.NodeRole.MASTER;
         player.start();
+    }
+
+    public void displayErrorAndStopGame(Exception e) {
+        JOptionPane.showMessageDialog(new JFrame(),
+                "Something went wrong\n" + e.getMessage(),
+                "App Error",
+                JOptionPane.ERROR_MESSAGE);
+        stop();
+        app.closeApp();
+    }
+
+    public void stop() {
+        if (player != null) {
+            player.stop();
+            try {
+                app.stopMulticastListener();
+            } catch (AppException appException) {
+                JOptionPane.showMessageDialog(new JFrame(),
+                        "Something went wrong\n" + appException.getMessage(),
+                        "App Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+            socket.close();
+        }
+
     }
 }

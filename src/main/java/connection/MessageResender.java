@@ -104,9 +104,7 @@ public class MessageResender extends Thread {
             try {
                 resendMessages();
                 sleep(pingDelay);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (IOException | InterruptedException e) {
                 return;
             }
         }
