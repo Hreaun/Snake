@@ -54,7 +54,7 @@ public class MulticastListener extends Thread {
     public void run() {
         byte[] buf = new byte[128];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
-        while (true) {
+        while (!isInterrupted()) {
             try {
                 multicastSocket.setSoTimeout(300);
                 multicastSocket.receive(packet);

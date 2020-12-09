@@ -68,12 +68,12 @@ public class App {
 
     public void stopMulticastListener() throws AppException {
         multicastListener.interrupt();
-        multicastListener.closeSocket();
         try {
             multicastListener.join();
         } catch (InterruptedException e) {
             throw new AppException(e.getMessage());
         }
+        multicastListener.closeSocket();
     }
 
     public SnakeProto.GameConfig getGameConfig(int hostId) {

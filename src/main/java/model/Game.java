@@ -193,18 +193,17 @@ public class Game {
     }
 
     public void stop() {
+        try {
+            app.stopMulticastListener();
+        } catch (AppException appException) {
+            JOptionPane.showMessageDialog(new JFrame(),
+                    "Something went wrong\n" + appException.getMessage(),
+                    "App Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
         if (player != null) {
             player.stop();
-            try {
-                app.stopMulticastListener();
-            } catch (AppException appException) {
-                JOptionPane.showMessageDialog(new JFrame(),
-                        "Something went wrong\n" + appException.getMessage(),
-                        "App Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-            socket.close();
         }
-
+        socket.close();
     }
 }
