@@ -33,7 +33,6 @@ public class Master extends Observable implements Player {
     private Long msgSeq = 0L;
 
     ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-    //Timer timer = new Timer();
     private final Game game;
     private final DatagramSocket socket;
     private Timer announceThread;

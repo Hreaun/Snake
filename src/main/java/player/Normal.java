@@ -12,11 +12,15 @@ import java.io.IOException;
 import java.net.*;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Normal extends Observable implements Player {
-    Timer timer = new Timer();
+    ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+    //Timer timer = new Timer();
     private Game game;
     private SnakeProto.NodeRole role;
     private int currentStateOrder = 0;
@@ -227,7 +231,7 @@ public class Normal extends Observable implements Player {
     private void changeMaster() {
         if (role == SnakeProto.NodeRole.DEPUTY) {
             if (state != null) {
-                timer.cancel();
+                timer.shutdown();
                 game.changeDeputyToMaster(state, playerId, gamePanel, gameConfig, socket, messageResender);
             } else {
                 stop();
@@ -299,23 +303,21 @@ public class Normal extends Observable implements Player {
             recvMessages();
         } while (!initGamePanel());
         updateState();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
+        timer.scheduleAtFixedRate(()-> {
                 setChanged();
                 notifyObservers();
                 recvMessages();
                 updateState();
                 sendPing();
-            }
-        }, 0, 1);
+        }, 0, 1, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void stop() {
-        timer.cancel();
+        timer.shutdown();
         messageResender.interrupt();
         try {
+            timer.awaitTermination(gameConfig.getStateDelayMs() * 2, TimeUnit.MILLISECONDS);
             messageResender.join();
         } catch (InterruptedException e) {
             game.displayErrorAndStopGame(e);
